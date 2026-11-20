@@ -9,7 +9,7 @@ import { StringDecoder } from 'node:string_decoder';
 const CHUNK = 1 << 20;
 
 export class Tail {
-  constructor(file, { onLine, onBackfillDone, backfillBytes = 1 << 20, interval = 400 } = {}) {
+  constructor(file, { onLine, onBackfillDone, backfillBytes = 1 << 20, interval = 200 } = {}) {
     this.file = file;
     this.onLine = onLine;
     this.onBackfillDone = onBackfillDone;
@@ -32,6 +32,12 @@ export class Tail {
     this.onBackfillDone && this.onBackfillDone();
     this.timer = setInterval(() => this.poll(), this.interval);
     if (this.timer.unref) this.timer.unref();
+    // The OS tells us the moment the file grows; the timer above is the safety net for
+    // systems (network drives, some Linux setups) where that signal is missed.
+    try {
+      this.watcher = fs.watch(this.file, { persistent: false }, () => this.poll());
+      this.watcher.on('error', () => { try { this.watcher.close(); } catch {} this.watcher = null; });
+    } catch { this.watcher = null; }
     return this;
   }
 
@@ -69,5 +75,6 @@ export class Tail {
   stop() {
     this.stopped = true;
     if (this.timer) clearInterval(this.timer);
+    if (this.watcher) { try { this.watcher.close(); } catch {} this.watcher = null; }
   }
 }

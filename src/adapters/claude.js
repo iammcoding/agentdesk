@@ -3,6 +3,7 @@
  * (or $CLAUDE_CONFIG_DIR/projects). Only `user`, `assistant`, `system`, `cost-state` and
  * `ai-title` lines matter here; the many others (api-request-*, attachment, …) are skipped.
  */
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { cut, textOf, IMAGE_EXT, lastSeg, isGit, isGh, isBrowserTool, tailLines } from '../events.js';
@@ -117,7 +118,26 @@ function resultFor(tool, block, tur) {
   return r;
 }
 
-export function createParser() {
+/* A helper agent's log sits beside the session: <session>/subagents/agent-<id>.jsonl, with a
+   .meta.json that names the tool call that started it. Same line format, marked isSidechain. */
+export function helperFiles(sessionFile) {
+  const dir = path.join(sessionFile.replace(/\.jsonl$/, ''), 'subagents');
+  let names;
+  try { names = fs.readdirSync(dir); } catch { return []; }
+  const out = [];
+  for (const n of names) {
+    if (!/^agent-.*\.jsonl$/.test(n)) continue;
+    const file = path.join(dir, n);
+    let meta = {};
+    try { meta = JSON.parse(fs.readFileSync(file.replace(/\.jsonl$/, '.meta.json'), 'utf8')); } catch {}
+    let mtime = 0;
+    try { mtime = fs.statSync(file).mtimeMs; } catch { continue; }
+    out.push({ file, mtime, callId: meta.toolUseId || '', kind: meta.agentType || 'helper', desc: meta.description || '' });
+  }
+  return out;
+}
+
+export function createParser(file = '', { sidechain = false } = {}) {
   const tools = new Map();   // tool_use id -> mapped tool (to read its result)
   const tasks = new Map();   // TaskCreate/TaskUpdate task list
   let pendingTask = new Map(); // tool_use id -> subject, until the result gives the task its id
@@ -143,7 +163,7 @@ export function createParser() {
       if (o.subtype === 'compact_boundary') out.push({ t: 'compact' });
       if (o.subtype === 'api_error') out.push({ t: 'retry', text: cut(textOf(o.content) || 'Lost the connection. Trying again…', 200) });
     }
-    if (o.isSidechain || o.isMeta) return out;
+    if ((o.isSidechain && !sidechain) || o.isMeta) return out;
 
     const msg = o.message;
     if (!msg) return out;

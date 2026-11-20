@@ -32,15 +32,29 @@ It follows whichever session changed last. To watch a different one, open **Sett
 | Images | looks at a picture or a screenshot (you see the real image) |
 | Git | commits or switches branch |
 | Network | calls an outside tool through MCP (GitHub, Slack, databases…), including retries |
-| Helper | starts a subagent |
+| Helper | starts a subagent (the window lists the helper's own steps, read from its log) |
 | Tasks | updates its to-do list |
-| Memory | summarises its memory to make room |
+| Memory | summarises its memory to make room (open it any time to see how full memory is) |
 | Question / Permission | asks you something, or waits for your OK |
 | Taskbar | open windows and background jobs (like `npm run dev`) |
 
+The windows are yours too: click a desktop icon to open one, click a window to bring it forward, drag its title bar to move it, drag its corner to resize, and use `–` `□` `✕` to minimize, maximize or close. Pinch (or Ctrl/⌘ + scroll) zooms a window's contents. Every window scrolls; while you read back, a **▼ LIVE** button takes you to the newest output.
+
+## How live is it?
+
+AgentDesk is told by the operating system the moment a log grows, so a step reaches the desk in well under half a second. The chip in the taskbar says **LIVE**, or **CATCHING UP** when the agent is working faster than the animations play; the desk then speeds up, and skips ahead if it falls more than about 4 seconds behind.
+
+Two limits come from the agents, not from AgentDesk: a reply appears when the agent has finished writing it (logs don't hold half-written text), and Claude Code writes its log a little after the fact. The plugin below closes that second gap.
+
 ## Claude Code plugin (optional)
 
-The log can't say when Claude is waiting for your permission, or exactly when it finishes. The plugin adds that, plus following the session you're typing in:
+The plugin makes Claude Code sessions faster and more complete on the desk:
+
+- a tool shows the instant it starts, without waiting for the log
+- the permission dialog appears when Claude is waiting for your OK
+- the final message, rate-limit and API errors, and the end of a session show straight away
+- the desk follows the session you're typing in
+
 
 ```
 /plugin marketplace add <owner>/agentdesk

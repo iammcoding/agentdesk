@@ -30,7 +30,7 @@ export class Hub {
 
   stop() {
     clearInterval(this.scanTimer);
-    if (this.cur && this.cur.watch) this.cur.watch.stop();
+    this.detach();
   }
 
   /* ---------- finding sessions ---------- */
@@ -96,24 +96,45 @@ export class Hub {
       this.adapters.find(a => a.match(r)) || this.adapters[0];
   }
 
+  detach() {
+    const cur = this.cur;
+    if (!cur) return;
+    if (cur.watch) cur.watch.stop();
+    for (const h of cur.helpers.values()) h.tail.stop();
+    clearInterval(cur.helperTimer);
+  }
+
   attach(file) {
-    if (this.cur && this.cur.watch) this.cur.watch.stop();
+    this.detach();
     const a = this.adapterFor(file);
     const parse = a.createParser(file);
-    const cur = { file, agent: a.id, label: a.label, events: [], sticky: {}, live: false, watch: null };
+    const cur = { file, adapter: a, agent: a.id, label: a.label, events: [], sticky: {}, live: false, watch: null,
+      parse, seenTool: new Set(), seenResult: new Set(), helpers: new Map(), helperTimer: null, since: Date.now() };
     this.cur = cur;
     this.log(`watching ${a.label}: ${file}`);
     this.send({ t: 'reset', agent: a.label, file, mode: this.mode });
 
+    /* The same tool call can arrive twice (once from a hook, once from the log): show it once. */
     const take = (evs, replay) => {
       for (const ev of evs) {
         if (this.cur !== cur) return;
+        if (ev.t === 'tool' && ev.id) { if (cur.seenTool.has(ev.id)) continue; cur.seenTool.add(ev.id); }
+        if (ev.t === 'result' && ev.id) { if (cur.seenResult.has(ev.id)) continue; cur.seenResult.add(ev.id); }
+        if (ev.t === 'say' && cur.hookSay && String(ev.text).trim() === cur.hookSay) { cur.hookSay = null; continue; } // already shown from the Stop hook
+        if (ev.t === 'say') cur.lastSay = String(ev.text).trim();
         if (ev.t === 'meta' || ev.t === 'todos' || ev.t === 'usage' || ev.t === 'cost') cur.sticky[ev.t] = ev;
         cur.events.push(ev);
         if (cur.events.length > KEEP) cur.events.splice(0, cur.events.length - KEEP);
-        this.send(replay ? { ...ev, replay: true } : ev);
+        this.send(replay ? { ...ev, replay: true } : { ...ev, at: Date.now() });
       }
     };
+    cur.take = take;
+
+    if (a.helperFiles) {
+      this.watchHelpers(cur);
+      cur.helperTimer = setInterval(() => this.watchHelpers(cur), 700);
+      if (cur.helperTimer.unref) cur.helperTimer.unref();
+    }
 
     if (a.format === 'json') {
       cur.watch = new DocWatch(file, doc => take(parse(doc), !cur.live), () => { cur.live = true; this.send({ t: 'live' }); }).start();
@@ -131,22 +152,79 @@ export class Hub {
     }
   }
 
+  /* ---------- helper agents ---------- */
+  /* Follows the log of each helper the session starts, and reports its steps one line at a time. */
+  watchHelpers(cur) {
+    if (this.cur !== cur) return;
+    let list;
+    try { list = cur.adapter.helperFiles(cur.file); } catch { return; }
+    for (const h of list) {
+      if (cur.helpers.has(h.file)) continue;
+      if (h.mtime < cur.since - 5 * 60e3) { cur.helpers.set(h.file, { tail: { stop() {} } }); continue; } // finished long ago
+      if (cur.helpers.size > 200) return;
+      const parse = cur.adapter.createParser(h.file, { sidechain: true });
+      const tail = new Tail(h.file, {
+        backfillBytes: 128 * 1024,
+        onLine: (line, replay) => {
+          let evs;
+          try { evs = parse(JSON.parse(line)); } catch { return; }
+          for (const ev of evs) {
+            const text = helperStep(ev);
+            if (text) cur.take([{ t: 'helper', id: h.callId, kind: h.kind, text, ok: ev.t !== 'result' || ev.ok }], replay);
+          }
+        },
+      }).start();
+      cur.helpers.set(h.file, { tail });
+    }
+  }
+
   /* ---------- hooks (from the Claude Code plugin) ---------- */
   hook(h) {
     if (!h || typeof h !== 'object') return;
     const tp = h.transcript_path;
     if (tp && this.mode === 'auto' && (!this.cur || path.resolve(tp) !== path.resolve(this.cur.file)) &&
-        /^(SessionStart|UserPromptSubmit|PreToolUse)$/.test(h.hook_event_name || '')) {
+        /^(SessionStart|UserPromptSubmit|PreToolUse)$/.test(h.hook_event_name || '') && !h.agent_id) {
       try { fs.accessSync(tp); this.attach(tp); } catch {}
     }
-    if (!this.cur || (tp && path.resolve(tp) !== path.resolve(this.cur.file))) return;
+    const cur = this.cur;
+    if (!cur || (tp && path.resolve(tp) !== path.resolve(cur.file))) return;
+    // Every hook means something just happened: read the log now instead of waiting for the next tick.
+    if (cur.watch && cur.watch.poll) cur.watch.poll();
+    if (h.agent_id) { for (const x of cur.helpers.values()) x.tail.poll && x.tail.poll(); this.watchHelpers(cur); return; } // a helper's own hook: its log covers it
     switch (h.hook_event_name) {
+      case 'PreToolUse':
+        // The tool is starting right now. Show it without waiting for the log line (same id, shown once).
+        if (cur.live && cur.agent === 'claude' && h.tool_use_id && h.tool_name && !cur.seenTool.has(h.tool_use_id)) {
+          try { cur.take(cur.parse({ type: 'assistant', message: { content: [{ type: 'tool_use', id: h.tool_use_id, name: h.tool_name, input: h.tool_input || {} }] } }), false); } catch {}
+        }
+        this.send({ t: 'permission-done' });
+        break;
+      case 'SubagentStart':
+      case 'SubagentStop':
+        this.watchHelpers(cur);
+        break;
+      case 'PostCompact':
+        break; // the log's own compact line draws it
+      case 'SessionEnd':
+        this.send({ t: 'ended', reason: String(h.reason || '') });
+        break;
       case 'PermissionRequest':
+        cur.permAt = Date.now();
         this.send({ t: 'permission', tool: h.tool_name || '', detail: permDetail(h.tool_name, h.tool_input) });
         break;
       case 'Notification':
-        if (/permission/i.test(h.message || '') || h.notification_type === 'permission_prompt') this.send({ t: 'permission', tool: '', detail: String(h.message || '').slice(0, 300) });
-        else if (h.notification_type === 'idle_prompt') this.send({ t: 'idle' });
+        // permission_prompt arrives ~6 s after the dialog opens; PermissionRequest (above) is the
+        // early signal with the details, so this one only matters when that hook didn't fire.
+        if (h.notification_type === 'permission_prompt' || (!h.notification_type && /permission/i.test(h.message || ''))) {
+          if (Date.now() - (cur.permAt || 0) > 30000) this.send({ t: 'permission', tool: '', detail: String(h.message || '').slice(0, 300) });
+        } else if (h.notification_type === 'elicitation_dialog' || h.notification_type === 'agent_needs_input') {
+          this.send({ t: 'permission', tool: '', detail: String(h.message || 'Waiting for your answer').slice(0, 300) });
+        } else if (h.notification_type === 'idle_prompt') this.send({ t: 'idle' });
+        break;
+      case 'StopFailure':
+        this.send({ t: 'permission-done' });
+        this.send({ t: 'retry', text: String(h.last_assistant_message || h.error_details || h.error || 'The request failed').slice(0, 200), at: Date.now() });
+        this.send({ t: 'idle' });
         break;
       case 'PostToolUse':
       case 'PostToolUseFailure':
@@ -154,10 +232,15 @@ export class Hub {
       case 'UserPromptSubmit':
         this.send({ t: 'permission-done' });
         break;
-      case 'Stop':
+      case 'Stop': {
         this.send({ t: 'permission-done' });
+        // The log may not have the final message yet when Stop fires, so the hook carries it.
+        const said = typeof h.last_assistant_message === 'string' ? h.last_assistant_message.trim() : '';
+        const text = said.length > 1500 ? said.slice(0, 1500) + '…' : said;
+        if (text && cur.live && cur.agent === 'claude' && text !== cur.lastSay) { cur.take([{ t: 'say', text }], false); cur.hookSay = text; }
         this.send({ t: 'idle' });
         break;
+      }
       case 'PreCompact':
         this.send({ t: 'compacting' });
         break;
@@ -179,6 +262,24 @@ export class Hub {
   removeClient(c) { this.clients.delete(c); }
 
   send(ev) { for (const c of this.clients) { try { c(ev); } catch {} } }
+}
+
+/* One line for what a helper just did, or '' for things not worth a line. */
+function helperStep(ev) {
+  if (ev.t === 'result') return ev.ok ? '' : '✕ ' + String(ev.text || (ev.lines || []).filter(Boolean).pop() || 'failed').split('\n')[0].slice(0, 120);
+  if (ev.t === 'say') return '“' + String(ev.text).replace(/\s+/g, ' ').slice(0, 140) + '”';
+  if (ev.t !== 'tool') return '';
+  const b = p => lastSeg(p) || String(p || '');
+  switch (ev.app) {
+    case 'ed': return (ev.op === 'read' ? 'Read ' : ev.op === 'write' ? 'Write ' : 'Edit ') + b(ev.path);
+    case 'img': return 'Look at ' + b(ev.path);
+    case 'term': return '$ ' + String(ev.command || '').split('\n')[0].slice(0, 120);
+    case 'files': return (ev.grep ? 'Search ' : 'Find ') + String(ev.pattern || '').slice(0, 80);
+    case 'web': return ev.query ? 'Search the web: ' + String(ev.query).slice(0, 80) : 'Open ' + String(ev.url || ev.action || '').slice(0, 100);
+    case 'net': return `${ev.server}.${ev.tool}`;
+    case 'help': return 'Start a helper: ' + String(ev.desc || '').slice(0, 80);
+    default: return ev.name ? 'Use ' + ev.name : '';
+  }
 }
 
 function permDetail(name, input = {}) {

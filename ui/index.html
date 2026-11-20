@@ -322,6 +322,22 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
 .dialog .ans{font-family:var(--pix);font-size:10px;background:var(--app-help);border:2px solid var(--ink);padding:2px 6px;align-self:flex-start}
 .graph .dot.head{background:var(--app-git)}
 .idle-tag{font-family:var(--pix);font-size:9px;background:var(--app-help);border:2px solid var(--ink);padding:0 5px}
+.icon[data-w]{cursor:pointer}
+.icon[data-w]:hover b{background:color-mix(in srgb,var(--c) 75%,#fff)}
+.emptywin{padding:16px;color:var(--mute);font-size:11.5px}
+#w-term .emptywin{color:#A9A9A9}
+.hprompt{padding:6px 10px;border-bottom:2px dashed #ccc;color:var(--mute);font-size:11px;white-space:pre-wrap}
+.hstep{padding:2px 10px;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hstep::before{content:"▸ ";color:#1E7A2E}
+.hstep.bad{color:#B42318}.hstep.wait{color:var(--mute)}
+.hstep:last-child{background:var(--add);font-weight:600}
+.live{font-family:var(--pix);font-size:10px;border:3px solid var(--ink);height:26px;padding:0 8px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;background:#fff}
+.live::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--mute);border:2px solid var(--ink)}
+.live.on::before{background:#2FCB5A;animation:blink 1.6s steps(2) infinite}
+.live.behind{background:var(--app-note)}.live.behind::before{background:var(--gold)}
+.live.off{background:#FFE1DD}.live.off::before{background:var(--red)}
+.live.sample::before{background:var(--app-img)}
+@media (max-width:700px){.live{padding:0 5px;font-size:0;gap:0}}
 
 /* ---- your window controls: front, move, resize, minimize, maximize, close, zoom ---- */
 .win:not(#w-set) .tb>.x{display:none}
@@ -364,7 +380,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
     <div class="url"><b>&lt;</b><b>&gt;</b><span id="url">about:blank</span></div><div class="bd" id="page"></div></div>
   <div class="win closed" id="w-term"><div class="tb"><span class="x"></span><span class="t">Shell</span><span class="st" id="term-st">RUNNING</span></div>
     <div class="bd" id="term"></div></div>
-  <div class="win closed" id="w-help"><div class="tb"><span class="x"></span><span class="t" id="help-t">Helper</span><span class="st">HELPER</span></div>
+  <div class="win closed" id="w-help"><div class="tb"><span class="x"></span><span class="t" id="help-t">Helper</span><span class="st" id="help-st">HELPER</span></div>
     <div class="bd"><div class="code" id="help-code"></div></div></div>
   <div class="win closed" id="w-files"><div class="tb"><span class="x"></span><span class="t" id="files-t">Files</span><span class="st" id="files-st">FINDING</span></div>
     <div class="bd"><div class="files" id="files"></div></div></div>
@@ -374,7 +390,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
     <div class="bd" id="git"></div></div>
   <div class="win closed" id="w-net"><div class="tb"><span class="x"></span><span class="t" id="net-t">Network</span><span class="st" id="net-st">CALLING</span></div>
     <div class="bd" id="net"></div></div>
-  <div class="win closed" id="w-mem"><div class="tb"><span class="x"></span><span class="t">Memory</span><span class="st">TIDYING UP</span></div>
+  <div class="win closed" id="w-mem"><div class="tb"><span class="x"></span><span class="t">Memory</span><span class="st" id="mem-st">IN USE</span></div>
     <div class="bd" id="mem"></div></div>
   <div class="win closed" id="w-todo"><div class="tb"><span class="x"></span><span class="t">Tasks</span><span class="st" id="todo-st">PLAN</span></div>
     <div class="bd"><div class="todo" id="todo"></div></div></div>
@@ -406,6 +422,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
     <button class="tbtn start" id="start" aria-label="Settings" aria-expanded="false"><svg id="start-g" viewBox="0 0 24 24" aria-hidden="true"></svg><span>Settings</span></button>
     <div class="wbtns" id="wbtns"></div>
     <span id="jobs"></span>
+    <span class="live" id="live" role="status"></span>
     <span class="clock" id="clock"></span>
   </div>
 </div>
@@ -432,7 +449,7 @@ const svg=k=>`<svg viewBox="0 0 24 24" class="g" aria-hidden="true">${GLYPH[k]}<
 const COL=Object.fromEntries(APPS.map(([k,,c])=>[k,c]));COL.todo='--app-note';
 const NAME=Object.fromEntries(APPS.map(([k,n])=>[k,n]));NAME.todo='Tasks';
 const $=id=>document.getElementById(id);
-$('icons').innerHTML=APPS.map(([k,n,c])=>`<div class="icon" data-w="${k}" style="--c:var(${c})"><b>${svg(k)}</b>${n}<span class="badge">!</span></div>`).join('')
+$('icons').innerHTML=APPS.map(([k,n,c])=>`<button class="icon" data-w="${k}" style="--c:var(${c})" aria-label="Open ${n}"><b>${svg(k)}</b>${n}<span class="badge">!</span></button>`).join('')
   +`<button class="icon launch" id="icon-set" style="--c:var(--app-set)" aria-label="Open settings"><b>${svg('set')}</b>Settings</button>`;
 $('start-g').outerHTML=svg('set');
 
@@ -465,7 +482,7 @@ let S;
 const fresh=()=>({agent:'Claude Code',project:'',branch:'',title:'',cwd:'',open:{},focus:null,
   tabs:[],cur:null,cache:{},view:{lines:[],mode:'READING'},
   term:[],termSt:'RUNNING',url:'',page:null,webSt:'LOOKING UP',
-  helpT:'',helpLines:[],say:'',sayErr:false,hsay:'',helpers:0,at:null,hat:null,
+  helpRuns:{},helpCur:null,say:'',sayErr:false,hsay:'',helpers:0,at:null,hat:null,
   notes:[],todos:[],files:null,dialog:null,img:null,git:{branch:'',commits:[]},net:null,mem:-1,memFrom:0,
   ctx:null,cost:null,jobs:[],bad:{},pend:{},idle:false,live:false});
 S=fresh();
@@ -477,14 +494,14 @@ let speed=1,paused=false,run=0;
 const opt={bubbles:true,meters:true};
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const CANCEL={};
-async function wait(ms,my){let l=ms;while(l>0){if(my!==run)throw CANCEL;if(!paused)l-=40*speed;await new Promise(r=>setTimeout(r,40));}if(my!==run)throw CANCEL;}
+async function wait(ms,my){let l=ms;while(l>0){if(my!==run)throw CANCEL;if(!paused)l-=40*speed*(1+Math.min(Q.length,6)*0.9);await new Promise(r=>setTimeout(r,40));}if(my!==run)throw CANCEL;}
 
 function ctx(my,inst){
   const W=ms=>inst?null:wait(ms,my);
   const type=async(s,set,per=18)=>{ if(inst||reduce||s.length>160){set(s);return;} for(let i=1;i<=s.length;i+=s.length>60?2:1){set(s.slice(0,i)+'█');render();await W(per);} set(s); };
   const goTo=async(w,click=true)=>{S.at=w;render();await W(600);if(click&&!inst)ring(S.at);};
   /* Keeps the 4 most recently used windows open (plus Tasks), like tidying a real desk. */
-  const show=w=>{S.open[w]=true;S.focus=w;raise(w);S.used=(S.used||[]).filter(x=>x!==w);S.used.push(w);
+  const show=w=>{S.open[w]=true;S.focus=w;ui.min[w]=false;raise(w);S.used=(S.used||[]).filter(x=>x!==w);S.used.push(w);
     const open=S.used.filter(x=>S.open[x]&&x!=='todo'&&x!=='help');
     while(open.length>4){const old=open.shift();S.open[old]=false;S.used=S.used.filter(x=>x!==old);}};
   const shake=w=>{ if(inst||reduce) return; const el=w==='ptr'?$('ptr'):$('w-'+w); if(!el)return; el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); };
@@ -496,6 +513,9 @@ function ctx(my,inst){
 }
 
 const Q=[];let pumping=false;
+/* How far behind the agent the desk is. Events carry the time the server saw them. */
+const MAX_LAG=4000;let lag=0;
+function lagOf(ev){lag=ev.at?Math.max(0,Date.now()-ev.at):0;}
 function enqueue(ev){
   if(ev.t==='reset'){Q.length=0;run++;}
   Q.push(ev);
@@ -505,9 +525,9 @@ async function pump(){
   pumping=true;
   while(Q.length){
     const ev=Q.shift();const my=run;
-    const inst=!!ev.replay||Q.length>8||document.hidden;
+    const inst=!!ev.replay||Q.length>6||document.hidden||(!!ev.at&&Date.now()-ev.at>MAX_LAG&&!paused);lagOf(ev);
     try{await handle(ev,ctx(my,inst));}catch(e){if(e!==CANCEL)console.error(e);}
-    if(inst&&Q.length&&(Q[0].replay||Q.length>8))continue;
+    if(inst&&Q.length&&(Q[0].replay||Q.length>6))continue;
     render(inst);
   }
   pumping=false;
@@ -523,13 +543,15 @@ async function handle(ev,x){
     case 'waiting': showEmpty(true);break;
     case 'live': S.live=true;break;
     case 'meta': Object.assign(S,{project:ev.project||S.project,branch:ev.branch||S.branch,title:ev.title||S.title,cwd:ev.cwd||S.cwd});if(ev.agent)S.agent=ev.agent;if(ev.branch)S.git.branch=ev.branch;updateConn();break;
-    case 'prompt': S.idle=false;note('you',ev.text);await x.W(1200);break;
+    case 'prompt': S.idle=false;S.ended=false;note('you',ev.text);await x.W(1200);break;
     case 'say': note('agent',ev.text);await x.W(1100);break;
     case 'think': S.sayErr=false;S.say='';await x.type(clip(plain(ev.text),140)||'Thinking…',v=>S.say=v);render();await x.W(ev.text?1100:700);S.say='';break;
     case 'todos': S.todos=ev.items||[];if(!S.open.todo)raise('todo');S.open.todo=S.todos.length>0;render();await x.W(350);break;
     case 'usage': S.ctx={used:ev.used,max:ev.max||200000};break;
     case 'cost': S.cost={usd:ev.usd,tokens:ev.tokens};break;
-    case 'compacting': case 'compact': await defrag(x);break;
+    case 'compacting': case 'compact': if(Date.now()-(S.defragAt||0)>60000||x.inst){S.defragAt=Date.now();await defrag(x);}break;
+    case 'helper': await helperStep(ev,x);break;
+    case 'ended': S.idle=true;S.ended=true;S.at=null;break;
     case 'retry': S.sayErr=true;S.say=clip(ev.text||'Lost the connection. Trying again…',120);render();x.shake('ptr');await x.W(1600);S.say='';S.sayErr=false;break;
     case 'job-end': S.jobs=S.jobs.filter(j=>j.id!==ev.job);break;
     case 'permission': S.dialog={kind:'perm',tool:ev.tool,detail:ev.detail};break;
@@ -574,9 +596,10 @@ const TOOL={
   },
   async img(t,x){await x.goTo('icon-img');x.show('img');S.img={name:base(t.path),src:null,stage:0};await x.goTo('img',false);},
   async help(t,x){
-    S.helpers++;S.hat='icon-help';S.hsay='';render();await x.W(400);
+    const r=helpRun(t.id);r.kind=t.kind||r.kind;r.desc=t.desc||r.desc;r.prompt=t.prompt||'';r.active=true;S.helpCur=t.id;
+    S.helpers=activeHelpers();S.hat='icon-help';S.hsay='';render();await x.W(400);
     await x.type(clip(t.desc||'Helping out',90),v=>S.hsay=v);render();await x.W(300);if(!x.inst)ring('icon-help');
-    S.open.help=true;S.helpT='Helper · '+(t.kind||'task');S.helpLines=String(t.prompt||t.desc||'').split('\n').slice(0,40).map(s=>({t:clip(s,200)}));S.hat='help';render();await x.W(1200);
+    S.open.help=true;ui.min.help=false;S.hat='help';render();await x.W(900);
   },
   async ask(t){S.dialog={kind:'q',q:t.question,header:t.header,opts:t.options||[],state:'wait'};},
   async net(t,x){
@@ -625,7 +648,8 @@ const RESULT={
     if(!S.img)S.img={name:base(t.path)};S.img.src=r.image||null;S.img.stage=1;render();await x.W(800);S.img.stage=2;render();await x.W(800);S.img.stage=3;render();await x.W(1000);
   },
   async help(t,r,x){
-    S.helpers=Math.max(0,S.helpers-1);
+    const run=helpRun(t.id);run.active=false;run.done=true;S.helpers=activeHelpers();
+    const next=Object.keys(S.helpRuns).reverse().find(k=>S.helpRuns[k].active);if(next)S.helpCur=next;
     if(!S.helpers){S.hsay='';S.open.help=false;}
     note('help',r.text||'Done.');render();await x.W(900);
   },
@@ -653,11 +677,20 @@ async function ghFrom(t,r,L,x){
   x.show('net');S.net={server:'github',tool:[words[1],words[2]].filter(Boolean).join(' ')||'gh',state:'send'};await x.goTo('net');await x.W(800);
   S.net.state=r.ok?'ok':'fail';S.net.msg=clip(L.filter(Boolean).pop()||'',160);render();await x.W(1000);
 }
+const helpRun=id=>(S.helpRuns[id]=S.helpRuns[id]||{kind:'helper',desc:'',prompt:'',steps:[],active:false});
+const activeHelpers=()=>Object.values(S.helpRuns).filter(r=>r.active).length;
+/* A line from a helper's own log: what it is doing right now. */
+async function helperStep(ev,x){
+  const r=helpRun(ev.id||'?');if(ev.kind&&r.kind==='helper')r.kind=ev.kind;
+  r.steps.push({t:ev.text,bad:ev.ok===false});if(r.steps.length>60)r.steps.shift();
+  if(r.done||!r.active)return;
+  S.helpCur=ev.id;S.hat='help';S.hsay=clip(ev.text,90);render();await x.W(350);
+}
 async function defrag(x){
   if(S.mem>=0)return;
-  S.memFrom=S.ctx?Math.round(S.ctx.used/S.ctx.max*100):85;x.show('mem');S.mem=0;await x.goTo('mem');await x.W(700);
+  S.memFrom=S.ctx?Math.round(S.ctx.used/S.ctx.max*100):85;x.show('mem');S.memAuto=true;S.mem=0;await x.goTo('mem');await x.W(700);
   for(let f=1;f<=8;f++){S.mem=f;render();await x.W(240);}
-  await x.W(800);S.open.mem=false;S.mem=-1;
+  await x.W(800);S.open.mem=false;S.memAuto=false;S.mem=-1;
 }
 
 /* ============ drawing ============ */
@@ -692,7 +725,7 @@ function render(snap){
   // editor
   $('ed-tabs').innerHTML=S.tabs.map(t=>`<span class="${t===S.cur?'cur':''}">${esc(base(t))}</span>`).join('');
   $('ed-t').textContent=shortPath(S.cur)||'Editor';$('ed-st').textContent=S.view.mode;
-  $('ed-code').innerHTML=codeHtml(S.view.lines);
+  $('ed-code').innerHTML=S.view.lines.length||S.cur?codeHtml(S.view.lines):emptyMsg('The agent hasn’t opened a file yet.');
   const bd=$('ed-bd');const first=bd.querySelector('.ln.add,.ln.del,.ln.hl');
   if(S.cur!==ui.lastCur){ui.lastCur=S.cur;delete ui.hold.ed;}
   if(!held('ed'))autoScroll(bd,first?Math.max(0,first.offsetTop-60):(S.view.lines.length?bd.scrollHeight:0));
@@ -706,13 +739,17 @@ function render(snap){
   $('web-st').textContent=S.webSt;
   $('url').innerHTML=S.url?car(esc(S.url)):'about:blank';
   const P=S.page;
-  $('page').innerHTML=!P?'':P.loading?'<div class="loading"><i style="width:60%"></i><i style="width:90%"></i><i style="width:75%"></i><i style="width:84%"></i></div>'
+  $('page').innerHTML=!P?emptyMsg('The agent hasn’t opened a web page yet.'):P.loading?'<div class="loading"><i style="width:60%"></i><i style="width:90%"></i><i style="width:75%"></i><i style="width:84%"></i></div>'
     :`<div class="page"><h3>${esc(clip(P.title,60))}</h3>${P.src?`<span class="src">${esc(clip(P.src,90))}</span>`:''}${P.image?`<img src="${P.image}" alt="">`:''}${P.links&&P.links.length?`<div class="links">${P.links.map(l=>`<a>${esc(l.title||l.url)}</a>`).join('')}</div>`:''}${P.text?`<div class="txt">${esc(P.text)}</div>`:''}</div>`;
   // helper
-  $('help-t').textContent=S.helpT||'Helper';$('help-code').innerHTML=codeHtml(S.helpLines.map(l=>({t:l.t})));
+  const HR=S.helpRuns[S.helpCur];
+  $('help-t').textContent=HR?'Helper · '+clip(HR.desc||HR.kind,40):'Helper';$('help-st').textContent=!HR?'HELPER':HR.active?String(HR.kind).toUpperCase():'DONE';
+  $('help-code').innerHTML=!HR?emptyMsg('No helper has run yet this session.')
+    :`<div class="hprompt">${esc(clip(HR.prompt||HR.desc,400))}</div>`+(HR.steps.length?HR.steps.map(st=>`<div class="hstep ${st.bad?'bad':''}">${esc(st.t)}</div>`).join(''):`<div class="hstep wait">${HR.active?'Working…':'No steps recorded.'}</div>`);
+  if(!held('help')){const hb=$('help-code').parentElement;autoScroll(hb,hb.scrollHeight);}
   // files
   const F=S.files;$('files-t').textContent=F?'Files · '+F.title:'Files';$('files-st').textContent=F&&F.rows?`${F.count} FOUND`:'FINDING';
-  $('files').innerHTML=!F?'':!F.rows?'<div class="loading"><i style="width:50%"></i><i style="width:70%"></i><i style="width:40%"></i></div>'
+  $('files').innerHTML=!F?emptyMsg('The agent hasn’t searched for files yet.'):!F.rows?'<div class="loading"><i style="width:50%"></i><i style="width:70%"></i><i style="width:40%"></i></div>'
     :F.rows.map(n=>`<div class="fr file hit"><i></i>${esc(clip(n,70))}</div>`).join('')+(F.more?`<div class="fr more">and ${F.more} more</div>`:'')+(!F.rows.length?'<div class="fr more">Nothing found</div>':'');
   // tasks
   const T=S.todos;const done=T.filter(t=>t.status==='completed').length;
@@ -720,7 +757,7 @@ function render(snap){
   $('todo-st').textContent=T.length&&done===T.length?'ALL DONE':`${done}/${T.length}`;
   // images
   const I=S.img;$('img-t').textContent=I?'Images · '+I.name:'Images';
-  $('img').innerHTML=I?`<div class="viewer"><div class="meta"><span>${esc(I.name)}</span><span id="img-size"></span></div><div class="shotwrap real" id="shotwrap">${I.src?`<div class="shot real"><img id="pic" src="${I.src}" alt=""></div>`:'<div class="loading" style="width:60%"><i></i><i></i><i></i></div>'}${I.stage>=1&&I.src?'<span class="lens" id="lens"></span>':''}${I.stage>=3?`<span class="seen">${I.src?'Looked at '+esc(I.name):'Could not open '+esc(I.name)}</span>`:''}</div></div>`:'';
+  $('img').innerHTML=I?`<div class="viewer"><div class="meta"><span>${esc(I.name)}</span><span id="img-size"></span></div><div class="shotwrap real" id="shotwrap">${I.src?`<div class="shot real"><img id="pic" src="${I.src}" alt=""></div>`:'<div class="loading" style="width:60%"><i></i><i></i><i></i></div>'}${I.stage>=1&&I.src?'<span class="lens" id="lens"></span>':''}${I.stage>=3?`<span class="seen">${I.src?'Looked at '+esc(I.name):'Could not open '+esc(I.name)}</span>`:''}</div></div>`:emptyMsg('The agent hasn’t looked at an image yet.');
   const pic=$('pic');if(pic){const sz=()=>{if(pic.naturalWidth&&$('img-size'))$('img-size').textContent=pic.naturalWidth+'×'+pic.naturalHeight;placeLens();};pic.complete?sz():pic.onload=sz;}
   // git
   const G=S.git;$('git-t').textContent='Git · '+(S.project||'repo');
@@ -734,9 +771,10 @@ function render(snap){
   $('net-st').textContent=!n?'CALLING':n.state==='fail'?'FAILED':n.state==='ok'?'DONE':n.state==='back'?'ANSWERED':n.retry?'RETRYING':'CALLING';
   $('net').innerHTML=n?`<div class="net"><div class="netcall">${esc(n.server)}.${esc(n.tool||'')}</div>
     <div class="wirerow"><span class="node">${esc(AG).replace(' ','<br>')}</span><span class="wire ${n.state==='fail'?'bad':''} ${n.state==='back'?'back':''}">${n.state==='send'||n.state==='back'?'<i class="pk"></i><i class="pk"></i><i class="pk"></i>':''}${n.state==='fail'?'<span class="xx">×</span>':''}</span><span class="node far">${esc(String(n.server).toUpperCase())}</span></div>
-    <div class="netmsg ${n.state==='fail'?'err':n.state==='ok'?'ok':''}">${n.state==='fail'||n.state==='ok'?esc(n.msg||''):n.state==='back'?'Got an answer. Reading it…':n.retry?'Trying again…':'Sending the request…'}</div></div>`:'';
+    <div class="netmsg ${n.state==='fail'?'err':n.state==='ok'?'ok':''}">${n.state==='fail'||n.state==='ok'?esc(n.msg||''):n.state==='back'?'Got an answer. Reading it…':n.retry?'Trying again…':'Sending the request…'}</div></div>`:emptyMsg('No outside tools called yet.');
   // memory window
-  $('mem').innerHTML=S.mem>=0?`<div class="mem"><div class="memmsg"><span>${S.mem<8?'Summarising old steps to make room':'Tidied up. Key facts kept.'}</span><b>${S.memFrom}% full</b></div><div class="cells">${memCells(S.mem).map(c=>`<i class="${c}"></i>`).join('')}</div></div>`:'';
+  $('mem').innerHTML=S.mem>=0?`<div class="mem"><div class="memmsg"><span>${S.mem<8?'Summarising old steps to make room':'Tidied up. Key facts kept.'}</span><b>${S.memFrom}% full</b></div><div class="cells">${memCells(S.mem).map(c=>`<i class="${c}"></i>`).join('')}</div></div>`:memNow();
+  $('mem-st').textContent=S.mem>=0?'TIDYING UP':'IN USE';
   // dialogs
   const dg=$('dialog'),D=S.dialog;dg.hidden=!D;dg.className='dialog'+(D&&D.kind==='q'?' q':'');
   if(D&&D.kind==='perm')dg.innerHTML=`<div class="tb"><span class="x"></span>PERMISSION</div><div class="db">${esc(AG)} wants to use ${esc(D.tool||'a tool')}:${D.detail?`<code>${esc(clip(D.detail,300))}</code>`:''}<div class="btns"><span>YES</span><span>YES, ALWAYS</span><span>NO</span></div><span class="wait">WAITING FOR YOU IN THE TERMINAL…</span></div>`;
@@ -746,7 +784,7 @@ function render(snap){
   // pointers and bubbles
   const say=$('say');say.hidden=!S.say||(!opt.bubbles&&!S.sayErr);say.className='say'+(S.sayErr?' err':'');
   say.innerHTML=S.say?`<small>${S.sayErr?'ERROR':'THINKING…'}</small>${car(esc(S.say))}`:'';
-  if(!S.say&&S.idle&&opt.bubbles){say.hidden=false;say.className='say';say.innerHTML='<small>DONE</small>Waiting for you';}
+  if(!S.say&&S.idle&&opt.bubbles){say.hidden=false;say.className='say';say.innerHTML=`<small>${S.ended?'SESSION ENDED':'DONE'}</small>${S.ended?'See you next time':'Waiting for you'}`;}
   const hs=$('hsay');hs.hidden=!S.hsay||!opt.bubbles;hs.innerHTML=S.hsay?`<small>HELPER</small>${car(esc(S.hsay))}`:'';
   $('hptr').classList.toggle('gone',!S.helpers);
   moveTo($('ptr'),S.at,snap);moveTo($('hptr'),S.hat||'icon-help',snap||!S.helpers);
@@ -759,6 +797,8 @@ function render(snap){
     return `<div class="note ${n.who} ${long?'long':''} ${open?'open':''}" data-note="${n.id}"${long?` role="button" tabindex="0" aria-expanded="${open}"`:''}><small>${n.who==='you'?'YOU ASKED':n.who==='help'?'HELPER REPORTS':esc(AG)}</small>${esc(open?n.text:clip(n.text,260))}${long?`<span class="more">${open?'SHOW LESS':'READ ALL'}</span>`:''}</div>`;}).join(''):'';
   if(keep){const el=$('notes').querySelector(`.note.open[data-note="${keep[0]}"]`);if(el)el.scrollTop=keep[1];}
   // taskbar and meters
+  const LV=demo.on?['sample','SAMPLE']:!conn.ok?['off',conn.was?'RECONNECTING…':'OFFLINE']:!conn.file?['wait','WAITING']:paused?['wait','PAUSED']:(Q.length>1||lag>1500)?['behind','CATCHING UP']:['on','LIVE'];
+  $('live').className='live '+LV[0];$('live').textContent=LV[1];
   $('jobs').innerHTML=S.jobs.map(j=>`<span class="job" title="${esc(j.name)}"><i></i><span>${esc(j.name)}</span></span>`).join('');
   $('wbtns').innerHTML=WINS.filter(w=>S.open[w]).map(w=>`<button class="wbtn ${w===top?'on':''} ${ui.min[w]?'min':''}" data-w="${w}" aria-label="${NAME[w]}${ui.min[w]?' (minimized)':''}"><b style="--c:var(${COL[w]})">${svg(w)}</b><span>${NAME[w]}</span></button>`).join('')
     +(ui.notesMin&&S.notes.length?(()=>{const n=(S.noteN||0)-(ui.notesSeen||0);return `<button class="wbtn min" data-notes aria-label="Show notes${n>0?', '+n+' new':''}"><b style="--c:var(--app-note)">${svg('note')}</b><span>Notes${n>0?' · '+n+' new':''}</span></button>`;})():'');
@@ -767,6 +807,13 @@ function render(snap){
   const k=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':String(n||0);
   $('tok').textContent=S.cost?(S.cost.usd==null?`${k(S.cost.tokens)} TOK`:`${k(S.cost.tokens)} TOK · $${S.cost.usd.toFixed(2)}`):S.ctx?`${k(S.ctx.used)} TOK`:'';
   $('proj').textContent=[S.project,S.branch].filter(Boolean).join(' · ');
+}
+const emptyMsg=t=>`<div class="emptywin">${esc(t)}</div>`;
+function memNow(){
+  if(!S.ctx)return emptyMsg('No memory reading yet.');
+  const pct=Math.min(100,Math.round(S.ctx.used/S.ctx.max*100)),full=Math.round(60*pct/100);
+  const k=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?Math.round(n/1e3)+'K':String(n);
+  return `<div class="mem"><div class="memmsg"><span>${k(S.ctx.used)} of ${k(S.ctx.max)} tokens in use</span><b>${pct}% full</b></div><div class="cells">${[...Array(60)].map((_,i)=>{const col=i%12,row=(i/12)|0,ord=col*5+row;return `<i class="${ord<full?'f'+(1+(i*7)%4):''}"></i>`;}).join('')}</div></div>`;
 }
 function placeLens(){
   const L=$('lens'),wr=$('shotwrap'),p=$('pic');if(!L||!wr||!p)return;
@@ -777,6 +824,8 @@ function placeLens(){
 /* ============ settings (yours, not the agent's) ============ */
 const conn={file:'',mode:'auto',ok:false,es:null};
 const setOpen=o=>{$('w-set').classList.toggle('closed',!o);$('start').classList.toggle('on',o);$('start').setAttribute('aria-expanded',o);if(o)loadSessions();};
+$('icons').addEventListener('click',e=>{const b=e.target.closest('.icon[data-w]');if(!b)return;const w=b.dataset.w;
+  S.open[w]=true;ui.min[w]=false;S.used=(S.used||[]).filter(x=>x!==w);S.used.push(w);raise(w);render(true);});
 $('start').onclick=()=>setOpen($('w-set').classList.contains('closed'));
 $('icon-set').onclick=()=>setOpen(true);
 $('set-x').onclick=()=>setOpen(false);
@@ -867,9 +916,9 @@ const params=new URLSearchParams(location.search);
 function connect(){
   if(conn.es)conn.es.close();
   const es=new EventSource('/events');conn.es=es;
-  es.onopen=()=>{conn.ok=true;updateConn();};
+  es.onopen=()=>{conn.ok=true;conn.was=true;updateConn();render(true);};
   es.onmessage=m=>{if(demo.on)return;let ev;try{ev=JSON.parse(m.data)}catch{return}enqueue(ev);};
-  es.onerror=()=>{conn.ok=false;updateConn();if(!demo.on&&!S.live){$('empty-msg').textContent='Can’t reach the agentdesk server. Run npx agentdesk in a terminal, then reload.';showEmpty(true);}};
+  es.onerror=()=>{conn.ok=false;updateConn();render(true);if(!demo.on&&!S.live){$('empty-msg').textContent='Can’t reach the agentdesk server. Run npx agentdesk in a terminal, then reload.';showEmpty(true);}};
 }
 function showEmpty(v){$('empty').hidden=!v;}
 
@@ -905,6 +954,8 @@ const DEMO=[
  {t:'result',id:'r1',ok:true,start:1,lines:SETTINGS_TSX.split('\n')},
  todo(1),{t:'usage',used:30000,max:200000},
  {t:'tool',id:'h1',app:'help',name:'Agent',desc:'Find how the theme is stored',kind:'Explore',prompt:'Find where the app keeps light/dark theme state.\nReport the hook name and file.'},
+ {t:'helper',id:'h1',kind:'Explore',text:'Search useTheme'},
+ {t:'helper',id:'h1',kind:'Explore',text:'Read theme.ts'},
  {t:'tool',id:'w1',app:'web',name:'WebFetch',url:'https://developer.mozilla.org/docs/Web/CSS/@media/prefers-color-scheme'},
  {t:'result',id:'w1',ok:true,text:'The prefers-color-scheme CSS media feature is used to detect if a user has requested light or dark color themes. A user indicates their preference through an operating system setting or a user agent setting.'},
  {t:'result',id:'h1',ok:true,text:'Theme lives in src/theme.ts: useTheme() gives { dark, setDark }.'},
