@@ -36,7 +36,25 @@ It follows whichever session changed last. To watch a different one, open **Sett
 | Tasks | updates its to-do list |
 | Memory | summarises its memory to make room (open it any time to see how full memory is) |
 | Question / Permission | asks you something, or waits for your OK |
+| Tests | runs the tests: a pass or fail banner, counts, and the failing tests |
+| Packages | installs packages |
 | Taskbar | open windows and background jobs (like `npm run dev`) |
+
+### Shell commands in the right window
+
+Agents often do with a shell command what a window already shows, so AgentDesk reads the command and sends it there. A green **RAN** strip under the title bar shows the command that really ran.
+
+| Command | Window |
+|---|---|
+| `cat`, `head`, `tail`, `sed -n '10,40p' file` | Editor, at those lines |
+| `sed -i …` | Editor, as an edit |
+| `grep`, `rg`, `find`, `fd`, `ls`, `tree` | Files |
+| `curl`, `wget` | Web |
+| `git …` (also `git add … && git commit …`) | Git, with the status, diff or log |
+| `npm test`, `pytest`, `go test`, `cargo test`, `flutter test`, `node --test`… | Tests |
+| `npm install`, `pip install`, `flutter pub get`… | Packages |
+
+Only clear cases are moved. A command that is chained with others, piped into another tool, writes to a file with `>`, or uses `$(…)` stays in the Shell, so the desk never shows something that didn't happen. With Claude Code, any shell command that changes files (a `sed -i`, a script, a formatter) also opens the Editor with the real diff, because Claude Code logs it. You can turn all of this off in Settings ("Commands as windows").
 
 The windows are yours too: click a desktop icon to open one, click a window to bring it forward, drag its title bar to move it, drag its corner to resize, and use `–` `□` `✕` to minimize, maximize or close. Pinch (or Ctrl/⌘ + scroll) zooms a window's contents. Every window scrolls; while you read back, a **▼ LIVE** button takes you to the newest output.
 

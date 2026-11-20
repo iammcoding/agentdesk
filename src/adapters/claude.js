@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { cut, textOf, IMAGE_EXT, lastSeg, isGit, isGh, isBrowserTool, tailLines } from '../events.js';
+import { cut, textOf, IMAGE_EXT, lastSeg, isGit, isGh, isBrowserTool, tailLines, outLines } from '../events.js';
 
 export const id = 'claude';
 export const label = 'Claude Code';
@@ -96,8 +96,18 @@ function resultFor(tool, block, tur) {
   }
   if (name === 'Bash' && T && ('stdout' in T || 'stderr' in T)) {
     const out = [T.stdout, T.stderr].filter(Boolean).join('\n');
-    r.lines = tailLines(out || (T.backgroundTaskId ? '' : text), 14).map(l => cut(l, 300));
+    r.lines = outLines(out || (T.backgroundTaskId ? '' : text)).map(l => cut(l, 300));
     if (T.backgroundTaskId) r.job = T.backgroundTaskId;
+    // Claude Code records what a shell command changed on disk: show those as real edits.
+    const d = T.bashEditDiff;
+    if (d && Array.isArray(d.files) && d.files.length) {
+      r.edits = d.files.slice(0, 4).map(f => ({ path: f.filePath, created: !!f.created, deleted: !!f.deleted,
+        hunks: (f.hunks || []).slice(0, 6).map(h => ({ start: h.newStart || h.oldStart || 1, lines: (h.lines || []).slice(0, 80).map(l => cut(l, 300)) })) }));
+      r.moreEdits = Math.max(0, d.files.length - 4) + (d.moreFiles || 0);
+    } else if (d && Array.isArray(d.changedFiles) && d.changedFiles.length) {
+      r.edits = d.changedFiles.slice(0, 4).map(p => ({ path: p, hunks: [] }));
+      r.moreEdits = Math.max(0, d.changedFiles.length - 4) + (d.moreFiles || 0);
+    }
     if (T.interrupted) r.ok = false;
     return r;
   }

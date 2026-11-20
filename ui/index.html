@@ -17,7 +17,7 @@
   --ink:#121212; --gold:#F4B942;
   --os-bg:#2B6E6A; --os-bg2:#2F7773; --white:#FFFFFF; --mute:#6E6A75; --chrome:#EEEEEE;
   --app-ed:#7FB2FF; --app-term:#121212; --app-web:#FF8FB1; --app-help:#8EE07A; --app-note:#FFE066;
-  --app-img:#C79BFF; --app-git:#FF9F45; --app-net:#5FD3E8; --app-mem:#B8F0A0; --app-set:#B9B4C2; --red:#FF5A4A;
+  --app-img:#C79BFF; --app-git:#FF9F45; --app-net:#5FD3E8; --app-mem:#B8F0A0; --app-set:#B9B4C2; --app-test:#9BE8C8; --app-pkg:#FFC48A; --red:#FF5A4A;
   --add:#C9F5C0; --hl:#FFF0A8;
   --pix:"Silkscreen","Courier New",monospace; --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
   color-scheme:light;
@@ -89,6 +89,38 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
 #w-git{--app:var(--app-git);left:46%;top:14%;width:36%;height:40%}
 #w-net{--app:var(--app-net);left:30%;top:24%;width:44%;height:34%}
 #w-mem{--app:var(--app-mem);left:24%;top:16%;width:38%;height:42%}
+#w-test{--app:var(--app-test);left:33%;top:17%;width:42%;height:50%}
+#w-pkg{--app:var(--app-pkg);left:27%;top:24%;width:40%;height:38%}
+/* the real command, under the title bar of a window that is standing in for the Shell */
+.cmd{flex:none;display:flex;gap:6px;align-items:center;padding:2px 8px;background:#121212;color:#8EE07A;font-size:10.5px;border-bottom:3px solid var(--ink);white-space:nowrap;overflow:hidden}
+.cmd[hidden]{display:none}
+.cmd b{font-family:var(--pix);font-size:8px;font-weight:400;color:#121212;background:#8EE07A;padding:0 4px;flex:none}
+.cmd span{overflow:hidden;text-overflow:ellipsis}
+.fr .at{color:var(--mute);font-weight:400}
+.fr .tx{color:var(--ink);font-weight:400;margin-left:8px;overflow:hidden;text-overflow:ellipsis}
+.gpanel{border-top:3px solid var(--ink);margin:0 -12px -10px;padding:6px 0;font-size:11px;flex:1;min-height:0}
+.gpanel small{display:block;font-family:var(--pix);font-size:9px;padding:0 12px 4px}
+.gl{padding:0 12px;white-space:pre;line-height:16px}
+.gl.add{background:var(--add)}.gl.del{background:#FFD9D4;color:#8a2a20}.gl.hl{background:var(--hl)}.gl.dim{color:var(--mute)}
+.run{height:100%;display:flex;flex-direction:column}
+.banner{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:3px solid var(--ink);font-family:var(--pix);font-size:16px;background:var(--chrome)}
+.banner small{font-family:var(--mono);font-size:11px}
+.banner.pass{background:#8EE07A}.banner.fail{background:#FF8A8A}
+.banner.go{background:repeating-linear-gradient(-45deg,var(--app-note) 0 12px,#fff 12px 24px);background-size:34px 100%;animation:stripes 1s linear infinite}
+@keyframes stripes{to{background-position:34px 0}}
+.counts{flex:none;display:flex;gap:8px;padding:8px 12px;flex-wrap:wrap;font-family:var(--pix);font-size:10px}
+.counts span{border:3px solid var(--ink);padding:2px 8px;background:#fff;box-shadow:2px 2px 0 var(--ink)}
+.counts .p{background:var(--add)}.counts .f{background:#FFD9D4}
+.ratio{flex:none;height:14px;margin:0 12px 8px;border:3px solid var(--ink);display:flex;background:#fff}
+.ratio i{background:#55C36A}.ratio b{background:var(--red)}
+.fails{flex:none;margin:0 12px 8px;border:3px solid var(--ink);background:#FFE1DD;padding:4px 8px;font-size:11px}
+.fails div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.outtail{margin:0;padding:6px 12px;font-size:11px;white-space:pre-wrap;color:var(--mute);border-top:2px dashed #ccc}
+.chips{display:flex;gap:6px;flex-wrap:wrap;padding:10px 12px}
+.chips span{border:3px solid var(--ink);padding:2px 8px;background:var(--app-pkg);font-size:11px;box-shadow:2px 2px 0 var(--ink)}
+.pmsg{margin:0 12px 8px;border:3px solid var(--ink);padding:6px 8px;font-size:12px;background:#fff}
+.pmsg.ok{background:var(--add)}.pmsg.err{background:#FFE1DD}.pmsg.warn{background:var(--hl)}
+@media (prefers-reduced-motion:reduce){.banner.go{animation:none}}
 #w-set{--app:var(--app-set);right:96px;top:calc(44px + env(safe-area-inset-top,0px));width:320px;z-index:25}
 #w-set .tb .x{cursor:pointer;display:grid;place-items:center;font-size:10px;line-height:1}
 .set{padding:4px 12px 10px}
@@ -388,12 +420,16 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
     <div class="bd"><div class="files" id="files"></div></div></div>
   <div class="win closed" id="w-img"><div class="tb"><span class="x"></span><span class="t" id="img-t">Images</span><span class="st">VIEWING</span></div>
     <div class="bd" id="img"></div></div>
-  <div class="win closed" id="w-git"><div class="tb"><span class="x"></span><span class="t" id="git-t">Git</span><span class="st">COMMITTING</span></div>
+  <div class="win closed" id="w-git"><div class="tb"><span class="x"></span><span class="t" id="git-t">Git</span><span class="st" id="git-st">GIT</span></div>
     <div class="bd" id="git"></div></div>
   <div class="win closed" id="w-net"><div class="tb"><span class="x"></span><span class="t" id="net-t">Network</span><span class="st" id="net-st">CALLING</span></div>
     <div class="bd" id="net"></div></div>
   <div class="win closed" id="w-mem"><div class="tb"><span class="x"></span><span class="t">Memory</span><span class="st" id="mem-st">IN USE</span></div>
     <div class="bd" id="mem"></div></div>
+  <div class="win closed" id="w-test"><div class="tb"><span class="x"></span><span class="t" id="test-t">Tests</span><span class="st" id="test-st">TESTS</span></div>
+    <div class="bd" id="test"></div></div>
+  <div class="win closed" id="w-pkg"><div class="tb"><span class="x"></span><span class="t" id="pkg-t">Packages</span><span class="st" id="pkg-st">PACKAGES</span></div>
+    <div class="bd" id="pkg"></div></div>
   <div class="win closed" id="w-todo"><div class="tb"><span class="x"></span><span class="t">Tasks</span><span class="st" id="todo-st">PLAN</span></div>
     <div class="bd"><div class="todo" id="todo"></div></div></div>
   <div class="win closed focus" id="w-set" role="dialog" aria-label="Settings"><div class="tb"><button class="x" id="set-x" aria-label="Close settings">✕</button><span class="t">Settings</span></div>
@@ -404,6 +440,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
         <span class="seg3" role="group" aria-label="Animation speed"><button class="on" data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="4">4×</button></span></div>
       <div class="srow"><span>Pause animations<small>Freeze the desk where it is</small></span><button class="osw" data-opt="paused" role="switch" aria-checked="false" aria-label="Pause animations"></button></div>
       <div class="srow"><span>Thought bubbles<small>What the agent is thinking</small></span><button class="osw on" data-opt="bubbles" role="switch" aria-checked="true" aria-label="Thought bubbles"></button></div>
+      <div class="srow"><span>Commands as windows<small>Show cat, grep, git, tests… in their own windows, not the Shell</small></span><button class="osw on" data-opt="views" role="switch" aria-checked="true" aria-label="Commands as windows"></button></div>
       <div class="srow"><span>Memory and cost<small>The meters in the menu bar</small></span><button class="osw on" data-opt="meters" role="switch" aria-checked="true" aria-label="Memory and cost"></button></div>
       <div class="srow"><span>Sample session<small id="demo-note">See every window in action</small></span><button class="pbtn" id="demo-btn">Play</button></div>
     </div></div>
@@ -432,7 +469,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
 <script>
 /* ============ apps and their pixel icons ============ */
 const APPS=[['files','Files','--app-note'],['ed','Editor','--app-ed'],['term','Shell','--app-term'],['web','Web','--app-web'],
-  ['img','Images','--app-img'],['git','Git','--app-git'],['net','Network','--app-net'],['mem','Memory','--app-mem'],['help','Helper','--app-help']];
+  ['img','Images','--app-img'],['git','Git','--app-git'],['net','Network','--app-net'],['test','Tests','--app-test'],['pkg','Packages','--app-pkg'],['mem','Memory','--app-mem'],['help','Helper','--app-help']];
 const K='#121212',WH='#fff';
 const GLYPH={
   files:`<path d="M2 6h8l2 3h10v11H2z" fill="${WH}"/>`,
@@ -446,6 +483,8 @@ const GLYPH={
   help:`<path d="M12 3v4"/><path d="M4 7h16v13H4z" fill="${WH}"/><path d="M8 11h3v3H8zM13 11h3v3h-3z" fill="${K}" stroke="none"/><path d="M9 17h6"/>`,
   todo:`<path d="M4 3h16v18H4z" fill="${WH}"/><path d="M7 9l2 2 3-3M14 10h3M7 16h10"/>`,
   note:`<path d="M3 3h18v12l-6 6H3z" fill="${WH}"/><path d="M15 21v-6h6M7 8h10M7 12h6"/>`,
+  test:`<circle cx="12" cy="12" r="9" fill="${WH}"/><path d="M7 12l3.5 3.5L17 9"/>`,
+  pkg:`<path d="M3 7l9-4 9 4v10l-9 4-9-4z" fill="${WH}"/><path d="M3 7l9 4 9-4M12 11v10"/>`,
   set:`<path d="M10 2h4v3l2 1 2-2 3 3-2 2 1 2h3v4h-3l-1 2 2 2-3 3-2-2-2 1v3h-4v-3l-2-1-2 2-3-3 2-2-1-2H2v-4h3l1-2-2-2 3-3 2 2 2-1z" fill="${WH}"/><path d="M10 10h4v4h-4z" fill="var(--app-set)"/>`};
 const svg=k=>`<svg viewBox="0 0 24 24" class="g" aria-hidden="true">${GLYPH[k]}</svg>`;
 const COL=Object.fromEntries(APPS.map(([k,,c])=>[k,c]));COL.todo='--app-note';
@@ -484,7 +523,7 @@ let S;
 const fresh=()=>({agent:'Claude Code',project:'',branch:'',title:'',cwd:'',open:{},focus:null,
   tabs:[],cur:null,cache:{},tabView:{},view:{lines:[],mode:'READING'},
   term:[],termSt:'RUNNING',url:'',page:null,webSt:'LOOKING UP',
-  helpRuns:{},helpCur:null,say:'',sayErr:false,hsay:'',helpers:0,at:null,hat:null,
+  helpRuns:{},helpCur:null,cmd:{},test:null,pkg:null,say:'',sayErr:false,hsay:'',helpers:0,at:null,hat:null,
   notes:[],todos:[],files:null,dialog:null,img:null,git:{branch:'',commits:[]},net:null,mem:-1,memFrom:0,
   ctx:null,cost:null,jobs:[],bad:{},pend:{},idle:false,live:false});
 S=fresh();
@@ -493,7 +532,7 @@ const rel=p=>{p=String(p||'');const c=S.cwd;return c&&p.startsWith(c)?p.slice(c.
 
 /* ============ playback ============ */
 let speed=1,paused=false,run=0;
-const opt={bubbles:true,meters:true};
+const opt={bubbles:true,meters:true,views:true};
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const CANCEL={};
 async function wait(ms,my){let l=ms;while(l>0){if(my!==run)throw CANCEL;if(!paused)l-=40*speed*(1+Math.min(Q.length,6)*0.9);await new Promise(r=>setTimeout(r,40));}if(my!==run)throw CANCEL;}
@@ -561,13 +600,22 @@ async function handle(ev,x){
     case 'idle': if(S.dialog&&S.dialog.kind==='perm')S.dialog=null;S.idle=true;S.at=null;break;
     case 'tool': {
       S.idle=false;if(S.dialog&&S.dialog.kind==='perm')S.dialog=null;
-      S.pend[ev.id]=ev;await (TOOL[ev.app]||TOOL.other)(ev,x);break;
+      S.pend[ev.id]=ev;
+      // A shell command that another window can show better goes there, with the real command on a strip.
+      if(ev.view&&opt.views&&VIEW[ev.view.kind]){ev._view=true;S.cmd[ev.win]=shortCmd(ev.command);S.term.push({cmd:clip(shortCmd(ev.command),180)});await VIEW[ev.view.kind](ev,x);}
+      else{if(ev.app!=='term')S.cmd[ev.app]=null;await (TOOL[ev.app]||TOOL.other)(ev,x);}
+      break;
     }
     case 'result': {
       if(S.dialog&&S.dialog.kind==='perm')S.dialog=null;
       const t=S.pend[ev.id];if(!t)break;delete S.pend[ev.id];
-      await (RESULT[t.app]||RESULT.other)(t,ev,x);
-      if(APPS.some(a=>a[0]===t.app)){ if(!ev.ok){S.bad[t.app]=true;render();x.shake(t.app);} else S.bad[t.app]=false; }
+      const app=t._view?t.win:t.app;
+      if(t._view){ // keep the Shell's history complete, quietly
+        for(const o of (ev.lines||[]).slice(-8))S.term.push({out:o,cls:ev.ok?'ok':'err'});if(S.term.length>80)S.term.splice(0,S.term.length-80);
+        await VIEWR[t.view.kind](t,ev,x);
+      } else await (RESULT[t.app]||RESULT.other)(t,ev,x);
+      if(APPS.some(a=>a[0]===app)){ if(!ev.ok){S.bad[app]=true;render();x.shake(app);} else S.bad[app]=false; }
+      if(ev.edits&&ev.edits.length)await showEdits(ev.edits,ev.moreEdits,t,x);
       break;
     }
   }
@@ -623,7 +671,7 @@ const RESULT={
       await x.W(500);return;
     }
     if(r.hunks&&r.hunks.length&&S.cur===p){
-      const L=[];r.hunks.forEach((h,hi)=>{if(hi)L.push({t:'⋯'});let n=h.start||1;for(const s of h.lines){const c=s[0],tx=s.slice(1);if(c==='-')L.push({t:tx,k:'del'});else{L.push({n,t:tx,k:c==='+'?'add':''});n++;}}});
+      const L=hunkLines(r.hunks);
       S.view.lines=L;S.view.scroll=null;render();await x.W(900);return;
     }
     if(!r.ok&&r.text){S.view.lines=[...S.view.lines,{t:clip(plain(r.text),200),k:'del'}];}
@@ -631,7 +679,7 @@ const RESULT={
   },
   async term(t,r,x){
     const L=r.lines||String(r.text||'').split('\n').slice(-14);
-    for(const o of L.slice(0,16)){S.term.push({out:o,cls:r.ok?'ok':'err'});render();await x.W(45);}
+    for(const o of L.slice(-14)){S.term.push({out:o,cls:r.ok?'ok':'err'});render();await x.W(45);}
     if(t.background){S.jobs.push({id:r.job||t.id,name:clip(shortCmd(t.command),40)});if(S.jobs.length>4)S.jobs.shift();}
     if(t.git&&r.ok)await gitFrom(t,L,x);
     if(t.gh)await ghFrom(t,r,L,x);
@@ -665,6 +713,62 @@ const RESULT={
   async other(){},
 };
 
+const hunkLines=hunks=>{const L=[];hunks.forEach((h,hi)=>{if(hi)L.push({t:'⋯'});let n=h.start||1;for(const s of h.lines){const c=s[0],tx=s.slice(1);if(c==='-')L.push({t:tx,k:'del'});else{L.push({n,t:tx,k:c==='+'?'add':''});n++;}}});return L;};
+/* The path a command names, seen from the folder it ran in. */
+const viewPath=v=>{let p=String(v.path||'');if(v.cwd&&!/^([\/~]|[A-Za-z]:)/.test(p))p=v.cwd.replace(/[\/]$/,'')+'/'+p;return rel(p);};
+
+/* Files a shell command changed (Claude Code logs the real diff): open them in the Editor. */
+async function showEdits(edits,more,t,x){
+  const views=edits.map(e=>({p:rel(e.path),mode:e.deleted?'DELETED':e.created?'CREATED':'EDITED',
+    lines:e.hunks&&e.hunks.length?hunkLines(e.hunks):[{t:e.deleted?'Deleted by the command.':'Changed by the command.'}]}));
+  await x.goTo('icon-ed');x.show('ed');
+  for(const v of views.slice().reverse()){tab(v.p);S.tabView[v.p]={lines:v.lines,mode:v.mode};}
+  const first=views[0];tab(first.p);S.view={lines:first.lines,mode:first.mode};S.cmd.ed=shortCmd(t.command);
+  await x.goTo('ed',false);await x.W(more||views.length>1?1300:900);
+}
+
+/* ---- shell commands shown in other windows ---- */
+const VIEW={
+  async read(t,x){const p=viewPath(t.view);await x.goTo('icon-ed');x.show('ed');tab(p);S.view.mode='READING';
+    const c=S.cache[p];S.view.lines=c&&t.view.start?c.map((s,i)=>({n:i+1,t:s??''})):[{t:'Opening '+base(p)+'…'}];await x.goTo('ed',false);},
+  async edit(t,x){const p=viewPath(t.view);await x.goTo('icon-ed');x.show('ed');tab(p);S.view.mode='EDITING';await x.goTo('ed');
+    const v=t.view;await x.reveal(v.old!=null?[{t:'every match of:',k:''},{t:v.old,k:'del'},{t:'becomes:',k:''},{t:v.new,k:'add'}]:[{t:'rule: '+v.rule,k:'hl'}]);},
+  async search(t,x){await filesView(t,x,'Search · '+clip(t.view.pattern,50));},
+  async find(t,x){await filesView(t,x,'Find · '+clip(t.view.pattern,50));},
+  async list(t,x){await filesView(t,x,'List · '+clip(t.view.path,50));},
+  async web(t,x){await x.goTo('icon-web');x.show('web');S.webSt=t.view.method==='GET'?'LOOKING UP':'SENDING '+t.view.method;S.page={loading:true};await x.goTo('web',false);
+    if(t.view.url!==S.url){S.url='';await x.type(clip(t.view.url,140),v=>S.url=v);}},
+  async git(t,x){await x.goTo('icon-git');x.show('git');S.git.panel={title:'git '+t.view.subs.join(' + '),lines:null};await x.goTo('git',false);},
+  async test(t,x){await x.goTo('icon-test');x.show('test');S.test={runner:t.view.runner,state:'run'};await x.goTo('test',false);},
+  async install(t,x){await x.goTo('icon-pkg');x.show('pkg');S.pkg={manager:t.view.manager,packages:t.view.packages||[],state:'run'};await x.goTo('pkg',false);},
+};
+async function filesView(t,x,title){await x.goTo('icon-files');x.show('files');S.files={title,rows:null};await x.goTo('files',false);}
+const outTail=(r,n=10)=>(r.lines||[]).filter(l=>l.trim()).slice(-n);
+const VIEWR={
+  async read(t,r,x){
+    const p=viewPath(t.view),L=r.lines||[];
+    if(!r.ok||!L.length){if(S.cur===p)S.view.lines=[{t:L.filter(Boolean).pop()||'Could not read the file.',k:'del'}];await x.W(700);return;}
+    if(t.view.start)return RESULT.ed({path:t.view.path&&p,op:'read'},{ok:true,lines:L,start:t.view.start},x);
+    if(S.cur===p){S.view.lines=L.map(s=>({t:s,k:'hl'}));render();}
+    await x.W(700);
+  },
+  async edit(t,r,x){ if(!r.ok&&S.cur===viewPath(t.view))S.view.lines=[...S.view.lines,{t:outTail(r,1)[0]||'The command failed.',k:'del'}]; await x.W(r.edits?200:700); },
+  async search(t,r,x){await filesDone(r,x);},
+  async find(t,r,x){await filesDone(r,x);},
+  async list(t,r,x){await filesDone(r,x);},
+  async web(t,r,x){S.page={title:host(t.view.url)||'Response',src:t.view.url,text:clip((r.lines||[]).join('\n'),900)};if(!r.ok)S.webSt='FAILED';render();await x.W(1200);},
+  async git(t,r,x){
+    const L=r.lines||[];S.git.panel={title:'git '+t.view.subs.join(' + '),lines:L.slice(0,80),ok:r.ok};render();
+    if(r.ok)await gitFrom(t,L,x);
+    await x.W(900);
+  },
+  async test(t,r,x){S.test={runner:t.view.runner,state:r.ok?'pass':'fail',out:r.out||{},tail:outTail(r,12)};render();await x.W(1500);},
+  async install(t,r,x){S.pkg={...(S.pkg||{}),manager:t.view.manager,packages:t.view.packages||[],state:r.ok?'ok':'fail',out:r.out||{},tail:outTail(r,6)};render();await x.W(1200);},
+};
+async function filesDone(r,x){
+  const o=r.out||{rows:(r.lines||[]).filter(Boolean).map(p=>({path:p})),count:(r.lines||[]).length};
+  S.files.rows=o.rows.slice(0,40).map(w=>({...w,path:rel(w.path)}));S.files.count=o.count;S.files.more=Math.max(0,o.count-S.files.rows.length);render();await x.W(900);
+}
 async function gitFrom(t,L,x){
   const out=L.join('\n');
   const m=/\[([^\]\s]+)(?: \([^)]*\))? ([0-9a-f]{7,40})\] (.+)/.exec(out);
@@ -709,7 +813,7 @@ const OLD=[...Array(60)].map((_,i)=>((i*37+11)%100)<88?'f'+(1+(i*7)%4):'');
 function memCells(f){const cut=f/8*12,keep=Math.round(60*0.3);
   return [...Array(60)].map((_,i)=>{const col=i%12,row=(i/12)|0,ord=col*5+row;if(col<cut)return ord<keep?'k':'';return OLD[i]+(Math.floor(cut)===col&&f<8?' sweep':'');});}
 
-const WINS=['ed','web','term','help','files','img','git','net','mem','todo'];
+const WINS=['ed','web','term','help','files','img','git','net','test','pkg','mem','todo'];
 function render(snap){
   /* Stacking: whatever was raised last (by you or the agent) is on top. */
   const order=WINS.filter(w=>S.open[w]&&!ui.min[w]).sort((a,b)=>(ui.z[a]||0)-(ui.z[b]||0));
@@ -758,7 +862,7 @@ function render(snap){
   // files
   const F=S.files;$('files-t').textContent=F?'Files · '+F.title:'Files';$('files-st').textContent=F&&F.rows?`${F.count} FOUND`:'FINDING';
   $('files').innerHTML=!F?emptyMsg('The agent hasn’t searched for files yet.'):!F.rows?'<div class="loading"><i style="width:50%"></i><i style="width:70%"></i><i style="width:40%"></i></div>'
-    :F.rows.map(n=>`<div class="fr file hit"><i></i>${esc(clip(n,70))}</div>`).join('')+(F.more?`<div class="fr more">and ${F.more} more</div>`:'')+(!F.rows.length?'<div class="fr more">Nothing found</div>':'');
+    :F.rows.map(n=>typeof n==='string'?{path:n}:n).map(n=>`<div class="fr file hit"><i></i>${esc(clip(n.path,70))}${n.line?`<span class="at">:${n.line}</span>`:''}${n.text?`<span class="tx">${esc(clip(n.text,90))}</span>`:''}</div>`).join('')+(F.more?`<div class="fr more">and ${F.more} more</div>`:'')+(!F.rows.length?'<div class="fr more">Nothing found</div>':'');
   // tasks
   const T=S.todos;const done=T.filter(t=>t.status==='completed').length;
   $('todo').innerHTML=T.map(t=>`<div class="td ${t.status==='completed'?'done':t.status==='in_progress'?'now':''}"><b>${t.status==='completed'?'✓':t.status==='in_progress'?'▸':''}</b>${esc(clip(t.text,90))}</div>`).join('');
@@ -768,18 +872,33 @@ function render(snap){
   $('img').innerHTML=I?`<div class="viewer"><div class="meta"><span>${esc(I.name)}</span><span id="img-size"></span></div><div class="shotwrap real" id="shotwrap">${I.src?`<div class="shot real"><img id="pic" src="${I.src}" alt=""></div>`:'<div class="loading" style="width:60%"><i></i><i></i><i></i></div>'}${I.stage>=1&&I.src?'<span class="lens" id="lens"></span>':''}${I.stage>=3?`<span class="seen">${I.src?'Looked at '+esc(I.name):'Could not open '+esc(I.name)}</span>`:''}</div></div>`:emptyMsg('The agent hasn’t looked at an image yet.');
   const pic=$('pic');if(pic){const sz=()=>{if(pic.naturalWidth&&$('img-size'))$('img-size').textContent=pic.naturalWidth+'×'+pic.naturalHeight;placeLens();};pic.complete?sz():pic.onload=sz;}
   // git
-  const G=S.git;$('git-t').textContent='Git · '+(S.project||'repo');
+  const G=S.git;$('git-t').textContent='Git · '+(S.project||'repo');$('git-st').textContent=G.panel?clip(G.panel.title.replace(/^git /,''),18).toUpperCase():G.commits.some(c=>c.fresh)?'COMMITTED':'GIT';
   const C=G.commits.slice(0,5).reverse();
   $('git').innerHTML=`<div class="git"><div class="graph"><span class="line" style="left:10px;top:30px;width:${Math.max(60,C.length*50+30)}px"></span>
     ${C.map((c,i)=>`<span class="dot ${c.fresh?'new':''} ${i===C.length-1?'head':''}" style="left:${30+i*50}px;top:30px"></span>`).join('')}
     <span class="lbl br" style="left:${Math.max(10,C.length*50-10)}px;top:48px">${esc(G.branch||'HEAD')} · HEAD</span></div>
-    <div class="commits">${G.commits.map(c=>`<div class="${c.fresh?'new':''}"><code>${esc(c.sha)}</code>${esc(clip(c.msg,70))}</div>`).join('')||'<div>No commits yet this session</div>'}</div></div>`;
+    <div class="commits">${G.commits.map(c=>`<div class="${c.fresh?'new':''}"><code>${esc(c.sha)}</code>${esc(clip(c.msg,70))}</div>`).join('')||'<div>No commits yet this session</div>'}</div>${G.panel?`<div class="gpanel"><small>${esc(G.panel.title)}</small>${!G.panel.lines?'<div class="gl dim">Running…</div>':G.panel.lines.length?G.panel.lines.map(l=>`<div class="gl ${/^\+(?!\+\+)/.test(l)?'add':/^-(?!--)/.test(l)?'del':/^@@|^\s*(modified|new file|deleted|renamed):|^\s?[MADRCU?]{1,2}\s\S/.test(l)?'hl':/^(diff |index |\+\+\+|---)/.test(l)?'dim':''}">${esc(l)||' '}</div>`).join(''):'<div class="gl dim">Nothing to show.</div>'}</div>`:''}</div>`;
   // network
   const n=S.net;$('net-t').textContent='Network · '+(n?n.server:'');
   $('net-st').textContent=!n?'CALLING':n.state==='fail'?'FAILED':n.state==='ok'?'DONE':n.state==='back'?'ANSWERED':n.retry?'RETRYING':'CALLING';
   $('net').innerHTML=n?`<div class="net"><div class="netcall">${esc(n.server)}.${esc(n.tool||'')}</div>
     <div class="wirerow"><span class="node">${esc(AG).replace(' ','<br>')}</span><span class="wire ${n.state==='fail'?'bad':''} ${n.state==='back'?'back':''}">${n.state==='send'||n.state==='back'?'<i class="pk"></i><i class="pk"></i><i class="pk"></i>':''}${n.state==='fail'?'<span class="xx">×</span>':''}</span><span class="node far">${esc(String(n.server).toUpperCase())}</span></div>
     <div class="netmsg ${n.state==='fail'?'err':n.state==='ok'?'ok':''}">${n.state==='fail'||n.state==='ok'?esc(n.msg||''):n.state==='back'?'Got an answer. Reading it…':n.retry?'Trying again…':'Sending the request…'}</div></div>`:emptyMsg('No outside tools called yet.');
+  // tests
+  const TS=S.test;$('test-t').textContent=TS?'Tests · '+TS.runner:'Tests';$('test-st').textContent=!TS?'TESTS':TS.state==='run'?'RUNNING':TS.state==='pass'?'PASSED':'FAILED';
+  $('test').innerHTML=!TS?emptyMsg('No tests run yet this session.'):TS.state==='run'?`<div class="run"><div class="banner go">RUNNING…<small>${esc(TS.runner)}</small></div></div>`:(()=>{
+    const o=TS.out||{},known=o.passed!=null||o.failed!=null,p=o.passed||0,fl=o.failed||0,tot=p+fl;
+    return `<div class="run"><div class="banner ${TS.state}">${TS.state==='pass'?'PASSED':'FAILED'}<small>${esc(TS.runner)}</small></div>
+      ${known?`<div class="counts"><span class="p">${p} PASSED</span><span class="${fl?'f':''}">${fl} FAILED</span>${o.skipped?`<span>${o.skipped} SKIPPED</span>`:''}</div>${tot?`<div class="ratio"><i style="flex:${p}"></i><b style="flex:${fl}"></b></div>`:''}`:''}
+      ${o.failures&&o.failures.length?`<div class="fails">${o.failures.map(l=>`<div>${esc(l)}</div>`).join('')}</div>`:''}
+      <pre class="outtail">${esc((TS.tail||[]).join('\n'))}</pre></div>`;})();
+  // packages
+  const PK=S.pkg;$('pkg-t').textContent=PK?'Packages · '+PK.manager:'Packages';$('pkg-st').textContent=!PK?'PACKAGES':PK.state==='run'?'INSTALLING':PK.state==='ok'?'DONE':'FAILED';
+  $('pkg').innerHTML=!PK?emptyMsg('Nothing installed yet this session.'):`<div class="run">${PK.state==='run'?'<div class="banner go">INSTALLING…</div>':''}
+    <div class="chips">${PK.packages.length?PK.packages.map(p=>`<span>${esc(clip(p,40))}</span>`).join(''):'<span>everything the project lists</span>'}</div>
+    ${PK.state!=='run'?`<div class="pmsg ${PK.state==='ok'?'ok':'err'}">${esc((PK.out&&PK.out.summary)||(PK.state==='ok'?'Done.':'The install failed.'))}</div>${PK.out&&PK.out.warn?`<div class="pmsg warn">${esc(PK.out.warn)}</div>`:''}${PK.state==='fail'?`<pre class="outtail">${esc((PK.tail||[]).join('\n'))}</pre>`:''}`:''}</div>`;
+  // the real command, on windows standing in for the Shell
+  for(const w of WINS){const c=$('w-'+w).querySelector('.cmd');if(!c)continue;const v=S.cmd[w];c.hidden=!v;if(v){c.lastElementChild.textContent='$ '+v;c.title=v;}}
   // memory window
   $('mem').innerHTML=S.mem>=0?`<div class="mem"><div class="memmsg"><span>${S.mem<8?'Summarising old steps to make room':'Tidied up. Key facts kept.'}</span><b>${S.memFrom}% full</b></div><div class="cells">${memCells(S.mem).map(c=>`<i class="${c}"></i>`).join('')}</div></div>`:memNow();
   $('mem-st').textContent=S.mem>=0?'TIDYING UP':'IN USE';
@@ -864,6 +983,7 @@ document.querySelectorAll('.win:not(#w-set) .bd').forEach(bd=>{const w=bd.closes
 setInterval(()=>{for(const w in ui.hold)if(!held(w)){delete ui.hold[w];if(S)render(true);}},1000);
 const winOf=el=>{const v=el&&el.closest('.win');return v&&v.id!=='w-set'?v.id.slice(2):null;};
 document.querySelectorAll('.win:not(#w-set) .tb').forEach(tb=>{const w=tb.parentElement.id.slice(2);
+  tb.insertAdjacentHTML('afterend','<div class="cmd" hidden><b>RAN</b><span></span></div>');
   tb.insertAdjacentHTML('beforeend',`<span class="wc"><button class="fl" data-act="follow" hidden aria-label="Follow the agent again">▼ LIVE</button><button class="zm" data-act="zoom" hidden aria-label="Reset zoom"></button><button data-act="min" aria-label="Minimize ${NAME[w]}">–</button><button data-act="max" aria-label="Maximize ${NAME[w]}">□</button><button data-act="close" aria-label="Close ${NAME[w]}">✕</button></span>`);});
 $('screen').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');const w=winOf(b);if(!b||!w)return;
@@ -976,13 +1096,13 @@ const DEMO=[
  {t:'result',id:'b1',ok:true,lines:['  VITE ready in 312 ms','  ➜ Local: http://localhost:5173/'],job:'dev'},
  {t:'permission',tool:'Bash',detail:'npm test -- settings'},{t:'pause',ms:2000},{t:'permission-done'},
  todo(2),
- {t:'tool',id:'b2',app:'term',name:'Bash',command:'npm test -- settings'},
- {t:'result',id:'b2',ok:false,lines:[' FAIL  src/pages/Settings.test.tsx','  ✕ renders the dark mode toggle','    ReferenceError: setDark is not defined','','Tests:  1 failed, 1 passed, 2 total']},
+ {t:'tool',id:'b2',app:'term',name:'Bash',command:'npm test -- settings',view:{kind:'test',runner:'npm test'},win:'test'},
+ {t:'result',id:'b2',ok:false,lines:[' FAIL  src/pages/Settings.test.tsx','  ✕ renders the dark mode toggle','    ReferenceError: setDark is not defined','','Tests:  1 failed, 1 passed, 2 total'],out:{passed:1,failed:1,failures:['FAIL  src/pages/Settings.test.tsx','✕ renders the dark mode toggle']}},
  {t:'think',text:'Forgot to get dark and setDark from useTheme.'},
  {t:'tool',id:'e2',app:'ed',op:'edit',name:'Edit',path:P+'src/pages/Settings.tsx',old:'  const [sound, setSound] = useState(true);',new:'  const [sound, setSound] = useState(true);\n  const { dark, setDark } = useTheme();'},
  {t:'result',id:'e2',ok:true,hunks:[{start:4,lines:[' export function SettingsPage() {','   const [sound, setSound] = useState(true);','+  const { dark, setDark } = useTheme();','']}]},
- {t:'tool',id:'b3',app:'term',name:'Bash',command:'npm test -- settings'},
- {t:'result',id:'b3',ok:true,lines:[' PASS  src/pages/Settings.test.tsx','  ✓ renders the sound toggle (18 ms)','  ✓ renders the dark mode toggle (9 ms)','','Tests:  2 passed, 2 total']},
+ {t:'tool',id:'b3',app:'term',name:'Bash',command:'npm test -- settings',view:{kind:'test',runner:'npm test'},win:'test'},
+ {t:'result',id:'b3',ok:true,lines:[' PASS  src/pages/Settings.test.tsx','  ✓ renders the sound toggle (18 ms)','  ✓ renders the dark mode toggle (9 ms)','','Tests:  2 passed, 2 total'],out:{passed:2,failed:0,failures:[]}},
  todo(3),{t:'usage',used:178000,max:200000},{t:'cost',usd:0.21,tokens:26000},
  {t:'compact'},{t:'usage',used:52000,max:200000},
  {t:'tool',id:'p1',app:'web',name:'mcp__playwright__browser_navigate',url:'http://localhost:5173/settings',action:'browser_navigate'},
@@ -993,7 +1113,9 @@ const DEMO=[
  {t:'result',id:'i1',ok:true,image:SHOT},
  {t:'say',text:'The screenshot shows Dark mode on, under Sound, and the page is dark.'},
  todo(4),
- {t:'tool',id:'c1',app:'term',name:'Bash',command:'git commit -am "Add dark mode toggle to Settings"',git:true},
+ {t:'tool',id:'s1',app:'term',name:'Bash',command:'grep -rn "useTheme" src',view:{kind:'search',pattern:'useTheme',path:'src'},win:'files'},
+ {t:'result',id:'s1',ok:true,lines:[],out:{count:3,files:2,rows:[{path:'src/theme.ts',line:2,text:'export function useTheme() {'},{path:'src/pages/Settings.tsx',line:3,text:'import { useTheme } from "../theme";'},{path:'src/pages/Settings.tsx',line:6,text:'const { dark, setDark } = useTheme();'}]}},
+ {t:'tool',id:'c1',app:'term',name:'Bash',command:'git commit -am "Add dark mode toggle to Settings"',git:true,view:{kind:'git',subs:['commit']},win:'git'},
  {t:'result',id:'c1',ok:true,lines:['[dark-mode a3f9c1e] Add dark mode toggle to Settings',' 1 file changed, 3 insertions(+)']},
  {t:'tool',id:'n1',app:'net',name:'mcp__github__create_pull_request',server:'github',tool:'create_pull_request'},
  {t:'result',id:'n1',ok:false,text:'Request timed out after 10 s.'},

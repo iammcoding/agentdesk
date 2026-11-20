@@ -82,6 +82,28 @@ test('hooks from another session or from inside a helper do not disturb the desk
   for (const junk of [null, 5, 'x', {}, { hook_event_name: 'Nope' }, { hook_event_name: 'PreToolUse' }]) assert.doesNotThrow(() => hub.hook(junk));
 });
 
+test('shell commands carry their window, the reading of their output, and real diffs', async () => {
+  const use = (id, command) => line(file, { type: 'assistant', cwd: '/w/shop', message: { content: [{ type: 'tool_use', id, name: 'Bash', input: { command } }] } });
+  const res = (id, stdout, extra = {}, bad = false) => line(file, { type: 'user', cwd: '/w/shop', message: { content: [{ type: 'tool_result', tool_use_id: id, content: stdout, is_error: bad }] }, toolUseResult: { stdout, stderr: '', ...extra } });
+  use('V1', 'npm test -- settings 2>&1 | tail -20');
+  res('V1', ' FAIL  src/a.test.ts\n  ✕ renders the toggle\nTests:  1 failed, 4 passed, 5 total', {}, true);
+  use('V2', "sed -n '3,4p' src/theme.ts");
+  res('V2', 'line three\nline four');
+  use('V3', "sed -i '' 's/a/b/' src/theme.ts");
+  res('V3', '', { bashEditDiff: { files: [{ filePath: '/w/shop/src/theme.ts', hunks: [{ oldStart: 3, newStart: 3, lines: [' x', '-a', '+b'] }] }] } });
+  use('V4', 'cat a.ts | grep foo > out.txt');
+  res('V4', '');
+  await until(() => got.find(e => e.t === 'result' && e.id === 'V4'));
+  const tool = id => got.find(e => e.t === 'tool' && e.id === id), result = id => got.find(e => e.t === 'result' && e.id === id);
+  assert.equal(tool('V1').win, 'test');
+  assert.deepEqual([result('V1').out.passed, result('V1').out.failed, result('V1').ok], [4, 1, false]);
+  assert.deepEqual(tool('V2').view, { kind: 'read', path: 'src/theme.ts', start: 3, end: 4 });
+  assert.deepEqual(result('V2').lines, ['line three', 'line four']);
+  assert.equal(tool('V3').view.kind, 'edit');
+  assert.deepEqual(result('V3').edits, [{ path: '/w/shop/src/theme.ts', created: false, deleted: false, hunks: [{ start: 3, lines: [' x', '-a', '+b'] }] }]);
+  assert.equal(tool('V4').view, undefined, 'a pipeline that writes a file stays in the Shell');
+});
+
 test('a helper agent\'s own log is followed and reported as steps under the call that started it', async () => {
   const dir = path.join(proj, 'sess-1', 'subagents');
   fs.mkdirSync(dir, { recursive: true });

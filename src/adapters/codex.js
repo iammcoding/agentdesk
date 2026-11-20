@@ -6,7 +6,7 @@
  */
 import os from 'node:os';
 import path from 'node:path';
-import { cut, textOf, IMAGE_EXT, lastSeg, isGit, isGh, isBrowserTool, tailLines } from '../events.js';
+import { cut, textOf, IMAGE_EXT, lastSeg, isGit, isGh, isBrowserTool, tailLines, outLines } from '../events.js';
 
 export const id = 'codex';
 export const label = 'Codex';
@@ -51,7 +51,7 @@ function shellResult(out) {
   if (m) code = Number(m[1]);
   const i = text.indexOf('\nOutput:\n');
   if (i >= 0) text = text.slice(i + 9);
-  return { ok: code == null ? !/^(error|failed)/i.test(text) : code === 0, lines: tailLines(text, 14).map(l => cut(l, 300)), exit: code };
+  return { ok: code == null ? !/^(error|failed)/i.test(text) : code === 0, lines: outLines(text).map(l => cut(l, 300)), exit: code };
 }
 
 function mapCall(name, a, namespace) {

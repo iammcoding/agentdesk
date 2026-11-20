@@ -5,7 +5,7 @@
  */
 import os from 'node:os';
 import path from 'node:path';
-import { cut, IMAGE_EXT, lastSeg, isGit, isGh, tailLines } from '../events.js';
+import { cut, IMAGE_EXT, lastSeg, isGit, isGh, tailLines, outLines } from '../events.js';
 
 export const id = 'copilot';
 export const label = 'Copilot CLI';
@@ -65,7 +65,7 @@ export function createParser() {
       tools.delete(d.toolCallId);
       const text = str(d.result && (d.result.content ?? d.result)) || str(d.error);
       const r = { t: 'result', id: d.toolCallId, ok: d.success !== false && !d.error };
-      if (tool.app === 'term') r.lines = tailLines(text, 14).map(l => cut(l, 300));
+      if (tool.app === 'term') r.lines = outLines(text).map(l => cut(l, 300));
       else r.text = cut(text, 1500);
       out.push(r);
     } else if (type === 'session.idle' || type === 'assistant.turn_end') {

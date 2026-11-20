@@ -6,7 +6,7 @@
  */
 import os from 'node:os';
 import path from 'node:path';
-import { cut, textOf, IMAGE_EXT, isGit, isGh, isBrowserTool, tailLines } from '../events.js';
+import { cut, textOf, IMAGE_EXT, isGit, isGh, isBrowserTool, tailLines, outLines } from '../events.js';
 
 export const id = 'gemini';
 export const label = 'Gemini CLI';
@@ -92,7 +92,7 @@ export function createParser(file = '') {
     const t = tools.get(tc.id) || {};
     const text = resultText(tc);
     const r = { t: 'result', id: tc.id, ok: tc.status === 'success' };
-    if (t.app === 'term') r.lines = tailLines(text, 14).map(l => cut(l, 300));
+    if (t.app === 'term') r.lines = outLines(text).map(l => cut(l, 300));
     else if (t.app === 'ed' && t.op === 'read' && r.ok) { r.lines = text.split('\n').slice(0, 400).map(l => cut(l, 300)); r.start = (t.offset || 0) + 1; }
     else r.text = cut(text, 1500);
     const img = resultImage(tc);

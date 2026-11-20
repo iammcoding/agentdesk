@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Tail } from './tail.js';
 import { lastSeg } from './events.js';
+import { classify, interpret, VIEW_APP } from './shell.js';
 
 const KEEP = 600;             // recent events kept for a desk that opens later
 const QUIET_MS = 20000;       // a session silent this long may be left for a busier one
@@ -114,7 +115,7 @@ export class Hub {
     const a = this.adapterFor(file);
     const parse = a.createParser(file);
     const cur = { file, adapter: a, agent: a.id, label: a.label, events: [], sticky: {}, live: false, watch: null,
-      parse, seenTool: new Set(), seenResult: new Set(), helpers: new Map(), helperTimer: null, since: Date.now() };
+      parse, seenTool: new Set(), seenResult: new Set(), views: new Map(), helpers: new Map(), helperTimer: null, since: Date.now() };
     this.cur = cur;
     this.log(`watching ${a.label}: ${file}`);
     this.send({ t: 'reset', agent: a.label, file, mode: this.mode });
@@ -124,6 +125,15 @@ export class Hub {
       for (const ev of evs) {
         if (this.cur !== cur) return;
         if (ev.t === 'tool' && ev.id) { if (cur.seenTool.has(ev.id)) continue; cur.seenTool.add(ev.id); }
+        if (ev.t === 'tool' && ev.app === 'term' && !ev.background) {
+          let view = null;
+          try { view = classify(ev.command); } catch {}
+          if (view) { ev.view = view; ev.win = VIEW_APP[view.kind]; cur.views.set(ev.id, view); if (cur.views.size > 400) cur.views.delete(cur.views.keys().next().value); }
+        }
+        if (ev.t === 'result' && cur.views.has(ev.id)) {
+          try { const out = interpret(cur.views.get(ev.id), ev.lines, ev.ok); if (out) ev.out = out; } catch {}
+          cur.views.delete(ev.id);
+        }
         if (ev.t === 'result' && ev.id) { if (cur.seenResult.has(ev.id)) continue; cur.seenResult.add(ev.id); }
         if (ev.t === 'say' && cur.hookSay && String(ev.text).trim() === cur.hookSay) { cur.hookSay = null; continue; } // already shown from the Stop hook
         if (ev.t === 'say') cur.lastSay = String(ev.text).trim();
