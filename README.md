@@ -99,6 +99,8 @@ The plugin makes Claude Code sessions faster and more complete on the desk:
 
 Its hooks run in the background, print nothing (so Claude never sees them and they cost no tokens), and do nothing when AgentDesk isn't running.
 
+**What the plugin sends, and where.** For each Claude Code event it uses (session start and end, each prompt you submit, each tool call before and after it runs, permission requests, notifications, compaction, helper agents, and the end of each turn), it passes the event's JSON, exactly as Claude Code gives it to hooks, to the AgentDesk app on your own computer at `http://127.0.0.1:<port>/hook`. That includes your prompts, tool inputs and results, and Claude's final message. Nothing is sent anywhere else, nothing is stored, and if AgentDesk isn't running it sends nothing. The whole plugin is one short script: [`plugin/hooks/forward.sh`](plugin/hooks/forward.sh). See [PRIVACY.md](PRIVACY.md).
+
 ## Options
 
 With `npx`, put `npx @iammcoding/agentdesk` in place of `agentdesk`.
@@ -113,6 +115,8 @@ agentdesk --no-open       don't open the browser
 ```
 
 ## Privacy
+
+Everything stays on your computer. The full details are in [PRIVACY.md](PRIVACY.md).
 
 - The server listens on `127.0.0.1` only and refuses requests from other sites.
 - It only reads the agents' log folders listed above, and never writes to them.

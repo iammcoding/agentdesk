@@ -14,5 +14,8 @@
   "homepage": "https://github.com/iammcoding/agentdesk#readme",
   "repository": "https://github.com/iammcoding/agentdesk",
   "license": "MIT",
-  "icon": "./.claude-plugin/icon.png"
+  "icon": "./.claude-plugin/icon.png",
+  "documentationUrl": "https://github.com/iammcoding/agentdesk#readme",
+  "supportUrl": "https://github.com/iammcoding/agentdesk/issues",
+  "privacyPolicyUrl": "https://github.com/iammcoding/agentdesk/blob/main/PRIVACY.md"
 }
