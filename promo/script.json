@@ -1,0 +1,23 @@
+{
+  "title": "AgentDesk: watch your AI code",
+  "voice": "thalia",
+  "speed": 1.08,
+  "gap": 0.18,
+  "lines": [
+    { "shot": "terminal", "say": "Your AI agent probably wrote four hundred lines of code today.", "show": "Your AI agent probably wrote 400 lines of code today." },
+    { "shot": "terminal-glitch", "say": "And you didn't watch a single one.", "punch": ["single", "one"] },
+    { "shot": "terminal-blur", "say": "Be honest. You scroll the terminal and hope for the best." },
+    { "shot": "logo", "say": "So I built AgentDesk." },
+    { "shot": "desk-wide", "say": "It turns your coding agent into a desktop you can actually watch." },
+    { "shot": "zoom-editor", "say": "Every file it reads opens in an editor." },
+    { "shot": "zoom-diff", "say": "Every change it makes shows up, line by line." },
+    { "shot": "zoom-tests", "say": "When the tests fail, you see them fail.", "punch": ["fail."] },
+    { "shot": "zoom-permission", "say": "When it needs your permission, it stops and asks." },
+    { "shot": "zoom-image", "say": "It even shows you the screenshot it's looking at." },
+    { "shot": "montage", "say": "Git. GitHub. Helper agents. All of it, live." },
+    { "shot": "agents", "say": "It works with Claude Code, Codex, and Gemini CLI." },
+    { "shot": "tokens", "say": "And it costs zero tokens. It only reads the logs your agent already writes.", "show": "And it costs 0 tokens. It only reads the logs your agent already writes.", "punch": ["0"] },
+    { "shot": "command", "say": "Free. Open source. One command." },
+    { "shot": "end", "say": "Now be honest. Do you read every line your AI writes?" }
+  ]
+}
