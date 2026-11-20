@@ -75,7 +75,7 @@ The plugin makes Claude Code sessions faster and more complete on the desk:
 
 
 ```
-/plugin marketplace add <owner>/agentdesk
+/plugin marketplace add iammcoding/agentdesk
 /plugin install agentdesk@agentdesk
 ```
 

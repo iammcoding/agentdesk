@@ -28,5 +28,13 @@
     "ai-agent",
     "devtools"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iammcoding/agentdesk.git"
+  },
+  "homepage": "https://github.com/iammcoding/agentdesk#readme",
+  "bugs": {
+    "url": "https://github.com/iammcoding/agentdesk/issues"
+  }
 }
