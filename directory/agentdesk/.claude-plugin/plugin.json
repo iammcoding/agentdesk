@@ -1,0 +1,18 @@
+{
+  "name": "agentdesk",
+  "displayName": "AgentDesk",
+  "version": "0.1.1",
+  "description": "Watch Claude Code work on a little retro desktop in your browser: files open in an editor, commands run in a shell, tests, git, web pages and helper agents each get their own window. Costs no tokens. Adds /agentdesk:open, which shows how to start it.",
+  "author": {
+    "name": "iammcoding",
+    "url": "https://github.com/iammcoding"
+  },
+  "homepage": "https://github.com/iammcoding/agentdesk#readme",
+  "repository": "https://github.com/iammcoding/agentdesk",
+  "license": "MIT",
+  "keywords": ["visualizer", "desktop", "watch", "agentdesk", "developer-tools"],
+  "icon": "./.claude-plugin/icon.png",
+  "documentationUrl": "https://github.com/iammcoding/agentdesk#readme",
+  "supportUrl": "https://github.com/iammcoding/agentdesk/issues",
+  "privacyPolicyUrl": "https://github.com/iammcoding/agentdesk/blob/main/PRIVACY.md"
+}
