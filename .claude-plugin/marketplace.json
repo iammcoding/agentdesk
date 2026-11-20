@@ -1,0 +1,12 @@
+{
+  "name": "agentdesk",
+  "owner": { "name": "AgentDesk" },
+  "description": "AgentDesk: watch your coding agent work on a little retro desktop.",
+  "plugins": [
+    {
+      "name": "agentdesk",
+      "source": "./plugin",
+      "description": "Live extras for AgentDesk: permission prompts, finished turns, and following the session you're in."
+    }
+  ]
+}

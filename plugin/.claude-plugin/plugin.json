@@ -1,0 +1,7 @@
+{
+  "name": "agentdesk",
+  "version": "0.1.0",
+  "description": "Live extras for AgentDesk: shows when Claude is waiting for your permission, when it finishes, and follows the session you're typing in. Silent, costs no tokens.",
+  "author": { "name": "AgentDesk" },
+  "keywords": ["visualizer", "agentdesk", "hooks"]
+}

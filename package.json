@@ -1,0 +1,32 @@
+{
+  "name": "agentdesk",
+  "version": "0.1.0",
+  "description": "Watch your coding agent work on a little retro desktop. Reads the agent's own session logs on your computer, so it costs no tokens.",
+  "type": "module",
+  "bin": {
+    "agentdesk": "bin/agentdesk.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "ui"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node bin/agentdesk.js",
+    "demo": "node bin/agentdesk.js --demo",
+    "test": "node --test test/*.test.js"
+  },
+  "keywords": [
+    "claude-code",
+    "codex",
+    "gemini-cli",
+    "coding-agent",
+    "visualizer",
+    "ai-agent",
+    "devtools"
+  ],
+  "license": "MIT"
+}
