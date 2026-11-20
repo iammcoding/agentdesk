@@ -10,7 +10,13 @@ AgentDesk runs entirely on your computer. It has no account, no analytics, and n
 - **What it keeps:** nothing on disk. Recent steps are held in memory while it runs and are gone when you stop it.
 - **Network:** none beyond `127.0.0.1`. The page's fonts are bundled, so it makes no outside requests.
 
-## The Claude Code plugin
+## The plugin in Claude's plugin directory
+
+The version listed in Anthropic's plugin directory (`directory/agentdesk` in this repository) is a command and a skill: text that tells Claude how to point you to AgentDesk. It has no hooks, scripts or servers. It reads nothing, sends nothing and stores nothing.
+
+## The full Claude Code plugin (installed from this repository)
+
+This is the version you add with `/plugin marketplace add iammcoding/agentdesk`. Unlike the directory version, it has hooks:
 
 - **What it sends:** for these Claude Code events, the event's own JSON, exactly as Claude Code hands it to hooks: session start and end, each prompt you submit, each tool call before and after it runs (tool name, input and result), permission requests and denials, notifications, compaction, helper agents starting and stopping, and the end of each turn (including Claude's final message). That can include your prompts, file paths, commands and Claude's replies.
 - **Where it sends it:** only to `http://127.0.0.1:<port>/hook` on your own computer, the AgentDesk app above, which uses it to update the desk. If AgentDesk isn't running, the plugin sends nothing.
