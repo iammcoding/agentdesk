@@ -8,9 +8,11 @@ import { Tail } from './tail.js';
 import { lastSeg } from './events.js';
 
 const KEEP = 600;             // recent events kept for a desk that opens later
+const QUIET_MS = 20000;       // a session silent this long may be left for a busier one
 
 export class Hub {
-  constructor(adapters, { file = null, log = () => {} } = {}) {
+  constructor(adapters, { file = null, log = () => {}, quietMs = QUIET_MS } = {}) {
+    this.quietMs = quietMs;
     this.adapters = adapters;
     this.clients = new Set();
     this.mode = file ? 'pinned' : 'auto';
@@ -78,7 +80,10 @@ export class Hub {
     }
     if (newest.file === this.cur.file) return;
     const curM = list.find(s => s.file === this.cur.file);
-    // Switch when another session is clearly the one being worked on now.
+    // Stay with the session we're watching while it is still working. With two agents busy at
+    // once, jumping to whichever wrote last would flip the desk back and forth. Move on only when
+    // this one has gone quiet and another is active (a prompt typed elsewhere also moves it: hook()).
+    if (curM && Date.now() - curM.mtime < this.quietMs) return;
     if (!curM || newest.mtime - curM.mtime > 3000) this.attach(newest.file);
   }
 
@@ -183,7 +188,7 @@ export class Hub {
     if (!h || typeof h !== 'object') return;
     const tp = h.transcript_path;
     if (tp && this.mode === 'auto' && (!this.cur || path.resolve(tp) !== path.resolve(this.cur.file)) &&
-        /^(SessionStart|UserPromptSubmit|PreToolUse)$/.test(h.hook_event_name || '') && !h.agent_id) {
+        /^(SessionStart|UserPromptSubmit)$/.test(h.hook_event_name || '') && !h.agent_id) {
       try { fs.accessSync(tp); this.attach(tp); } catch {}
     }
     const cur = this.cur;

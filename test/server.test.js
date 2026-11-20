@@ -115,14 +115,23 @@ test('session list and pinning only accept known sessions', async () => {
   assert.equal(hub.mode, 'auto');
 });
 
-test('follows a newer session when one starts', async () => {
+test('stays on a session that is still working, moves to a newer one once it goes quiet', async () => {
   const other = path.join(proj, 'sess-2.jsonl');
-  await new Promise(r => setTimeout(r, 50));
-  const p = stream(evs => evs.some(e => e.t === 'reset' && e.file === other), 6000);
-  await new Promise(r => setTimeout(r, 300));
+  line({ type: 'assistant', cwd: '/w/shop', message: { content: [{ type: 'text', text: 'still busy' }] } });
   fs.writeFileSync(other, JSON.stringify({ type: 'user', cwd: '/w/two', message: { role: 'user', content: 'New one' } }) + '\n');
   const future = new Date(Date.now() + 10000);
   fs.utimesSync(other, future, future);
+  await new Promise(r => setTimeout(r, 2000));
+  assert.equal(hub.cur.file, file, 'two busy sessions must not make the desk flip back and forth');
+
+  const p = stream(evs => evs.some(e => e.t === 'reset' && e.file === other), 6000);
+  const past = new Date(Date.now() - 60000);
+  fs.utimesSync(file, past, past); // the watched session went quiet a minute ago
   const evs = await p;
   assert.ok(evs.some(e => e.t === 'reset' && e.file === other));
+});
+
+test('typing a prompt in another session moves the desk there at once', async () => {
+  assert.equal(await post('/hook', { hook_event_name: 'UserPromptSubmit', transcript_path: file, prompt: 'back here' }), 204);
+  assert.equal(hub.cur.file, file);
 });

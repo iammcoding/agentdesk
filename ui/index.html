@@ -107,7 +107,9 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
 
 /* editor */
 .tabs{display:flex;border-bottom:3px solid var(--ink);background:var(--chrome);font-family:var(--pix);font-size:10px}
-.tabs span{padding:3px 10px;border-right:3px solid var(--ink)}
+.tabs span,.tabs button{padding:3px 10px;border-right:3px solid var(--ink);white-space:nowrap;flex:none;font-family:var(--pix);font-size:10px}
+.tabs button:hover{background:var(--hl)}
+.tabs button.agent::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#2FCB5A;border:2px solid var(--ink);margin-right:5px;vertical-align:-1px}
 .tabs .cur{background:#fff}
 .code{padding:4px 0}
 .ln{display:grid;grid-template-columns:30px 14px 1fr;white-space:pre;line-height:17px}
@@ -480,7 +482,7 @@ const codeHtml=L=>L.map(l=>`<div class="ln ${l.k||''}"><span class="n">${l.n??''
 /* ============ state ============ */
 let S;
 const fresh=()=>({agent:'Claude Code',project:'',branch:'',title:'',cwd:'',open:{},focus:null,
-  tabs:[],cur:null,cache:{},view:{lines:[],mode:'READING'},
+  tabs:[],cur:null,cache:{},tabView:{},view:{lines:[],mode:'READING'},
   term:[],termSt:'RUNNING',url:'',page:null,webSt:'LOOKING UP',
   helpRuns:{},helpCur:null,say:'',sayErr:false,hsay:'',helpers:0,at:null,hat:null,
   notes:[],todos:[],files:null,dialog:null,img:null,git:{branch:'',commits:[]},net:null,mem:-1,memFrom:0,
@@ -534,7 +536,7 @@ async function pump(){
 }
 
 /* ============ what each event does ============ */
-const tab=p=>{if(!S.tabs.includes(p))S.tabs.push(p);if(S.tabs.length>5)S.tabs.shift();S.cur=p;};
+const tab=p=>{if(!S.tabs.includes(p))S.tabs.push(p);if(S.tabs.length>5)S.tabs.shift();S.cur=p;ui.edTab=null;};
 const note=(who,text)=>{S.noteN=(S.noteN||0)+1;S.notes.push({id:S.noteN,who,text:clip(plain(text),3000)});if(S.notes.length>6)S.notes.shift();};
 
 async function handle(ev,x){
@@ -723,12 +725,18 @@ function render(snap){
   const AG=label(S.agent);$('ptr-name').textContent=AG;
 
   // editor
-  $('ed-tabs').innerHTML=S.tabs.map(t=>`<span class="${t===S.cur?'cur':''}">${esc(base(t))}</span>`).join('');
-  $('ed-t').textContent=shortPath(S.cur)||'Editor';$('ed-st').textContent=S.view.mode;
-  $('ed-code').innerHTML=S.view.lines.length||S.cur?codeHtml(S.view.lines):emptyMsg('The agent hasn’t opened a file yet.');
+  /* Each tab remembers what it last showed. You can click any tab to look at that file; the
+     agent's own tab has a dot, and the editor goes back to it when the agent next uses a file. */
+  if(S.cur)S.tabView[S.cur]={lines:S.view.lines,mode:S.view.mode};
+  for(const k in S.tabView)if(!S.tabs.includes(k))delete S.tabView[k];
+  if(ui.edTab&&(!S.tabView[ui.edTab]||ui.edTab===S.cur))ui.edTab=null;
+  const shown=ui.edTab||S.cur,EV=ui.edTab?S.tabView[ui.edTab]:S.view;
+  $('ed-tabs').innerHTML=S.tabs.map(t=>`<button class="${t===shown?'cur':''} ${t===S.cur?'agent':''}" data-tab="${esc(t)}" title="${esc(t)}"${t===S.cur?' aria-label="'+esc(base(t))+' (the agent is here)"':''}>${esc(base(t))}</button>`).join('');
+  $('ed-t').textContent=shortPath(shown)||'Editor';$('ed-st').textContent=ui.edTab?'YOU’RE VIEWING':S.view.mode;
+  $('ed-code').innerHTML=EV.lines.length||shown?codeHtml(EV.lines):emptyMsg('The agent hasn’t opened a file yet.');
   const bd=$('ed-bd');const first=bd.querySelector('.ln.add,.ln.del,.ln.hl');
-  if(S.cur!==ui.lastCur){ui.lastCur=S.cur;delete ui.hold.ed;}
-  if(!held('ed'))autoScroll(bd,first?Math.max(0,first.offsetTop-60):(S.view.lines.length?bd.scrollHeight:0));
+  if(shown!==ui.lastCur){ui.lastCur=shown;delete ui.hold.ed;if(ui.edTab)autoScroll(bd,first?Math.max(0,first.offsetTop-60):0);}
+  if(!ui.edTab&&!held('ed'))autoScroll(bd,first?Math.max(0,first.offsetTop-60):(S.view.lines.length?bd.scrollHeight:0));
   // shell
   const pr=esc(S.project||'~');
   $('term-st').textContent=S.termSt;
@@ -885,6 +893,7 @@ $('screen').addEventListener('pointerdown',e=>{
 $('screen').addEventListener('wheel',e=>{if(!(e.ctrlKey||e.metaKey))return;const w=winOf(e.target);if(!w)return;e.preventDefault();
   ui.zoom[w]=Math.round(Math.min(2.5,Math.max(0.6,(ui.zoom[w]||1)*(e.deltaY<0?1.1:1/1.1)))*100)/100;if(Math.abs(ui.zoom[w]-1)<0.05)ui.zoom[w]=1;render(true);},{passive:false});
 /* Taskbar: click a minimized window to bring it back, the front one to minimize it, any other to bring it forward. */
+$('ed-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(!b)return;const p=b.dataset.tab;ui.edTab=p===S.cur?null:p;raise('ed');render(true);});
 const toggleNote=el=>{const id=+el.dataset.note;ui.noteOpen=ui.noteOpen===id?null:id;render(true);};
 $('notes').addEventListener('click',e=>{
   if(e.target.closest('[data-notes-min]')){ui.notesMin=true;ui.notesSeen=S.noteN||0;ui.noteOpen=null;render(true);return;}
