@@ -67,7 +67,15 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
 .tb .x{width:14px;height:14px;border:2px solid var(--ink);background:#fff;flex:none}
 .tb .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tb .st{margin-left:auto;background:#fff;border:2px solid var(--ink);padding:0 5px;font-size:9px;color:var(--ink);white-space:nowrap}
-.win .bd{flex:1;min-height:0;overflow:hidden;position:relative}
+.win .bd{flex:1;min-height:0;overflow:auto;position:relative;overscroll-behavior:contain;scrollbar-color:var(--ink) #EEE}
+.win .bd::-webkit-scrollbar{width:12px;height:12px}
+.win .bd::-webkit-scrollbar-track{background:#EEE;border-left:2px solid var(--ink)}
+.win .bd::-webkit-scrollbar-thumb{background:var(--ink);border:3px solid #EEE}
+.win .bd::-webkit-scrollbar-corner{background:#EEE}
+#w-term .bd{scrollbar-color:#8EE07A #121212}
+#w-term .bd::-webkit-scrollbar-track,#w-term .bd::-webkit-scrollbar-corner{background:#121212;border-left-color:#333}
+#w-term .bd::-webkit-scrollbar-thumb{background:#8EE07A;border-color:#121212}
+.tabs{overflow-x:auto;scrollbar-width:none}
 .win.shake{animation:shake .45s steps(6)}
 @keyframes shake{20%{translate:-8px 0}40%{translate:8px 0}60%{translate:-6px 0}80%{translate:5px 0}}
 #w-ed{--app:var(--app-ed);left:2.5%;top:8%;width:52%;height:54%}
@@ -120,7 +128,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
 .url{display:flex;gap:6px;padding:5px 6px;border-bottom:3px solid var(--ink);background:var(--chrome)}
 .url b{border:2px solid var(--ink);background:#fff;width:20px;text-align:center;font-family:var(--pix);font-size:10px}
 .url span{flex:1;min-width:0;border:2px solid var(--ink);background:#fff;padding:1px 6px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.page{padding:10px 12px;display:flex;flex-direction:column;gap:8px;height:100%}
+.page{padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-height:100%}
 .page h3{margin:0;font-family:var(--pix);font-size:15px}
 .page p{margin:0;font-size:11.5px;line-height:1.5}
 .page pre{margin:0;border:2px solid var(--ink);padding:6px;background:#F4F4F4;font-size:11px}
@@ -276,11 +284,11 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
 /* ---- live additions ---- */
 .ln.del{background:#FFD9D4;color:#8a2a20}
 .ln.del .m{color:#B42318}
-#w-ed .bd,#w-help .bd{overflow:hidden}
+#w-img .bd{overflow:hidden}
 .tl{color:#E8E8E8}
 .tl.plain{color:#E8E8E8}
 .page .src{font-size:10px;color:var(--mute);font-family:var(--pix)}
-.page .txt{font-size:11.5px;line-height:1.5;white-space:pre-wrap;overflow:hidden;flex:1;min-height:0}
+.page .txt{font-size:11.5px;line-height:1.5;white-space:pre-wrap}
 .page .links{display:flex;flex-direction:column;gap:4px;font-size:11.5px}
 .page .links a{color:#1C5BD6;text-decoration:underline;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
 .page img{max-width:100%;max-height:60%;object-fit:contain;border:2px solid var(--ink);align-self:flex-start}
@@ -308,6 +316,27 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
 .dialog .ans{font-family:var(--pix);font-size:10px;background:var(--app-help);border:2px solid var(--ink);padding:2px 6px;align-self:flex-start}
 .graph .dot.head{background:var(--app-git)}
 .idle-tag{font-family:var(--pix);font-size:9px;background:var(--app-help);border:2px solid var(--ink);padding:0 5px}
+
+/* ---- your window controls: front, move, resize, minimize, maximize, close, zoom ---- */
+.win:not(#w-set) .tb>.x{display:none}
+.win{overflow:hidden}
+.win .bd{zoom:var(--z,1)}
+.win .tb{user-select:none;-webkit-user-select:none}
+.wc{display:flex;gap:4px;flex:none;margin-left:6px}
+.wc button{min-width:18px;height:16px;padding:0 3px;border:2px solid var(--ink);background:#fff;display:grid;place-items:center;font-family:var(--pix);font-size:10px;line-height:1;color:var(--ink)}
+.wc button:hover{background:var(--gold)}
+.wc .zm,.wc .fl{font-size:8px}
+.wc .fl{background:var(--app-help)}
+.wc button[hidden]{display:none}
+.win.max{left:8px!important;top:calc(40px + env(safe-area-inset-top,0px))!important;right:86px!important;bottom:calc(52px + env(safe-area-inset-bottom,0px))!important;width:auto!important;height:auto!important;resize:none!important}
+.win.moving{transition:none}
+.wbtn{cursor:pointer;font:inherit;color:inherit}
+.wbtn.min{opacity:.6;border-style:dashed}
+@media (min-width:701px){
+  .win .tb{cursor:grab}
+  .win.moving .tb{cursor:grabbing}
+  .win:not(#w-set){resize:both;min-width:220px;min-height:110px}
+}
 </style>
 </head>
 <body>
@@ -448,7 +477,7 @@ function ctx(my,inst){
   const type=async(s,set,per=18)=>{ if(inst||reduce||s.length>160){set(s);return;} for(let i=1;i<=s.length;i+=s.length>60?2:1){set(s.slice(0,i)+'█');render();await W(per);} set(s); };
   const goTo=async(w,click=true)=>{S.at=w;render();await W(600);if(click&&!inst)ring(S.at);};
   /* Keeps the 4 most recently used windows open (plus Tasks), like tidying a real desk. */
-  const show=w=>{S.open[w]=true;S.focus=w;S.used=(S.used||[]).filter(x=>x!==w);S.used.push(w);
+  const show=w=>{S.open[w]=true;S.focus=w;raise(w);S.used=(S.used||[]).filter(x=>x!==w);S.used.push(w);
     const open=S.used.filter(x=>S.open[x]&&x!=='todo'&&x!=='help');
     while(open.length>4){const old=open.shift();S.open[old]=false;S.used=S.used.filter(x=>x!==old);}};
   const shake=w=>{ if(inst||reduce) return; const el=w==='ptr'?$('ptr'):$('w-'+w); if(!el)return; el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); };
@@ -490,7 +519,7 @@ async function handle(ev,x){
     case 'prompt': S.idle=false;note('you',ev.text);await x.W(1200);break;
     case 'say': note('agent',ev.text);await x.W(1100);break;
     case 'think': S.sayErr=false;S.say='';await x.type(clip(plain(ev.text),140)||'Thinking…',v=>S.say=v);render();await x.W(ev.text?1100:700);S.say='';break;
-    case 'todos': S.todos=ev.items||[];S.open.todo=S.todos.length>0;render();await x.W(350);break;
+    case 'todos': S.todos=ev.items||[];if(!S.open.todo)raise('todo');S.open.todo=S.todos.length>0;render();await x.W(350);break;
     case 'usage': S.ctx={used:ev.used,max:ev.max||200000};break;
     case 'cost': S.cost={usd:ev.usd,tokens:ev.tokens};break;
     case 'compacting': case 'compact': await defrag(x);break;
@@ -640,9 +669,16 @@ function memCells(f){const cut=f/8*12,keep=Math.round(60*0.3);
 
 const WINS=['ed','web','term','help','files','img','git','net','mem','todo'];
 function render(snap){
-  for(const w of WINS){const el=$('w-'+w);el.classList.toggle('closed',!S.open[w]);
-    el.classList.toggle('focus',S.focus===w||w==='help'||w==='todo');
-    el.style.zIndex=w==='todo'?21:S.focus===w?20:(w==='help'?18:10);}
+  /* Stacking: whatever was raised last (by you or the agent) is on top. */
+  const order=WINS.filter(w=>S.open[w]&&!ui.min[w]).sort((a,b)=>(ui.z[a]||0)-(ui.z[b]||0));
+  const top=order[order.length-1];
+  for(const w of WINS){const el=$('w-'+w);el.classList.toggle('closed',!S.open[w]||!!ui.min[w]);
+    el.classList.toggle('focus',w===top||w==='help'||w==='todo');el.classList.toggle('max',!!ui.max[w]);
+    const i=order.indexOf(w);el.style.zIndex=i<0?5:10+i;
+    const z=ui.zoom[w]||1;el.querySelector('.bd').style.setProperty('--z',z);
+    const zb=el.querySelector('.zm');zb.hidden=z===1;zb.textContent=Math.round(z*100)+'%';
+    el.querySelector('.fl').hidden=!held(w);
+    el.querySelector('[data-act="max"]').textContent=ui.max[w]?'❐':'□';}
   document.querySelectorAll('.icon[data-w]').forEach(i=>{const k=i.dataset.w;i.classList.toggle('on',S.at==='icon-'+k||S.hat==='icon-'+k);i.classList.toggle('bad',!!S.bad[k]);});
   const AG=label(S.agent);$('ptr-name').textContent=AG;
 
@@ -651,13 +687,14 @@ function render(snap){
   $('ed-t').textContent=shortPath(S.cur)||'Editor';$('ed-st').textContent=S.view.mode;
   $('ed-code').innerHTML=codeHtml(S.view.lines);
   const bd=$('ed-bd');const first=bd.querySelector('.ln.add,.ln.del,.ln.hl');
-  bd.scrollTop=first?Math.max(0,first.offsetTop-60):(S.view.lines.length?bd.scrollHeight:0);
+  if(S.cur!==ui.lastCur){ui.lastCur=S.cur;delete ui.hold.ed;}
+  if(!held('ed'))autoScroll(bd,first?Math.max(0,first.offsetTop-60):(S.view.lines.length?bd.scrollHeight:0));
   // shell
   const pr=esc(S.project||'~');
   $('term-st').textContent=S.termSt;
   $('term').innerHTML=S.term.map(l=>l.cmd!==undefined?`<div class="tl"><span class="p">${pr} $</span> ${car(esc(l.cmd))}</div>`
     :`<div class="tl ${l.cls==='err'&&/error|fail|✕|✗|denied|not found|exception|cannot|unable/i.test(l.out)?'err':l.cls==='ok'&&/pass|✓|success|done|ready|\[.+\]|ok\b/i.test(l.out)?'ok':'plain'}">${esc(l.out)||' '}</div>`).join('');
-  $('term').scrollTop=1e6;
+  if(!held('term'))autoScroll($('term'),1e6);
   // web
   $('web-st').textContent=S.webSt;
   $('url').innerHTML=S.url?car(esc(S.url)):'about:blank';
@@ -709,7 +746,7 @@ function render(snap){
   $('notes').innerHTML=S.notes.slice(-2).map(n=>`<div class="note ${n.who}"><small>${n.who==='you'?'YOU ASKED':n.who==='help'?'HELPER REPORTS':esc(AG)}</small>${esc(n.text)}</div>`).join('');
   // taskbar and meters
   $('jobs').innerHTML=S.jobs.map(j=>`<span class="job" title="${esc(j.name)}"><i></i><span>${esc(j.name)}</span></span>`).join('');
-  $('wbtns').innerHTML=WINS.filter(w=>S.open[w]).map(w=>`<span class="wbtn ${S.focus===w?'on':''}"><b style="--c:var(${COL[w]})">${svg(w)}</b><span>${NAME[w]}</span></span>`).join('');
+  $('wbtns').innerHTML=WINS.filter(w=>S.open[w]).map(w=>`<button class="wbtn ${w===top?'on':''} ${ui.min[w]?'min':''}" data-w="${w}" aria-label="${NAME[w]}${ui.min[w]?' (minimized)':''}"><b style="--c:var(${COL[w]})">${svg(w)}</b><span>${NAME[w]}</span></button>`).join('');
   if(S.ctx){const pct=Math.min(100,Math.round(S.ctx.used/S.ctx.max*100));$('memfill').style.width=pct+'%';$('mempct').textContent=pct+'%';$('meter').classList.toggle('hot',pct>=85);}
   else{$('memfill').style.width='0';$('mempct').textContent='–';$('meter').classList.remove('hot');}
   const k=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':String(n||0);
@@ -736,6 +773,58 @@ document.querySelectorAll('[data-opt]').forEach(b=>b.onclick=()=>{
   if(k==='paused')paused=v;else opt[k]=v;
   $('mbr').classList.toggle('nometers',!opt.meters);render(true);});
 addEventListener('resize',()=>render(true));
+
+/* ============ your window controls ============ */
+/* Kept apart from the agent's state, so your layout survives when the desk switches session. */
+const ui={z:{},min:{},max:{},zoom:{},hold:{},lastCur:null};let zc=0;
+function raise(w){ui.z[w]=++zc;}
+/* Scrolling: you can scroll any window. While you're reading back, the agent stops scrolling that
+   window for you; scroll to the bottom, press ▼ LIVE, or wait 10 s and it follows again. */
+const HOLD_MS=10000;
+const held=w=>!!ui.hold[w]&&Date.now()-ui.hold[w]<HOLD_MS;
+let progScroll=0;
+function autoScroll(el,top){if(Math.abs(el.scrollTop-Math.min(top,el.scrollHeight-el.clientHeight))<2)return;progScroll++;el.scrollTop=top;requestAnimationFrame(()=>requestAnimationFrame(()=>progScroll--));}
+document.querySelectorAll('.win:not(#w-set) .bd').forEach(bd=>{const w=bd.closest('.win').id.slice(2);
+  bd.addEventListener('scroll',()=>{if(progScroll)return;
+    const atEnd=bd.scrollHeight-bd.scrollTop-bd.clientHeight<8;
+    if(w==='term'&&atEnd){if(ui.hold.term){delete ui.hold.term;render(true);}return;}
+    const was=held(w);ui.hold[w]=Date.now();if(!was)render(true);},{passive:true});});
+setInterval(()=>{for(const w in ui.hold)if(!held(w)){delete ui.hold[w];if(S)render(true);}},1000);
+const winOf=el=>{const v=el&&el.closest('.win');return v&&v.id!=='w-set'?v.id.slice(2):null;};
+document.querySelectorAll('.win:not(#w-set) .tb').forEach(tb=>{const w=tb.parentElement.id.slice(2);
+  tb.insertAdjacentHTML('beforeend',`<span class="wc"><button class="fl" data-act="follow" hidden aria-label="Follow the agent again">▼ LIVE</button><button class="zm" data-act="zoom" hidden aria-label="Reset zoom"></button><button data-act="min" aria-label="Minimize ${NAME[w]}">–</button><button data-act="max" aria-label="Maximize ${NAME[w]}">□</button><button data-act="close" aria-label="Close ${NAME[w]}">✕</button></span>`);});
+$('screen').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');const w=winOf(b);if(!b||!w)return;
+  const a=b.dataset.act;
+  if(a==='min')ui.min[w]=true;
+  else if(a==='max'){ui.max[w]=!ui.max[w];raise(w);}
+  else if(a==='close'){S.open[w]=false;ui.max[w]=false;ui.min[w]=false;}
+  else if(a==='zoom')ui.zoom[w]=1;
+  else if(a==='follow')delete ui.hold[w];
+  render(true);});
+/* Click anywhere on a window to bring it to the front. */
+$('screen').addEventListener('pointerdown',e=>{const w=winOf(e.target);if(!w||e.target.closest('[data-act]'))return;
+  const order=WINS.filter(x=>S.open[x]&&!ui.min[x]).sort((a,b)=>(ui.z[a]||0)-(ui.z[b]||0));
+  if(order[order.length-1]!==w){raise(w);render(true);}});
+/* Double-click a title bar to maximize or restore. */
+$('screen').addEventListener('dblclick',e=>{const tb=e.target.closest('.tb');const w=winOf(tb);if(!w||e.target.closest('[data-act]'))return;ui.max[w]=!ui.max[w];raise(w);render(true);});
+/* Drag a title bar to move the window (desktop sizes; drag the bottom-right corner to resize). */
+$('screen').addEventListener('pointerdown',e=>{
+  const tb=e.target.closest('.tb');const w=winOf(tb);if(!w||e.target.closest('[data-act]')||ui.max[w]||innerWidth<=700||e.button!==0)return;
+  const el=$('w-'+w),sx=e.clientX,sy=e.clientY,ox=el.offsetLeft,oy=el.offsetTop,W=el.offsetWidth,H=el.offsetHeight;
+  el.classList.add('moving');tb.setPointerCapture(e.pointerId);
+  const mv=ev=>{const x=Math.min(innerWidth-60,Math.max(60-W,ox+ev.clientX-sx)),y=Math.min(innerHeight-90,Math.max(34,oy+ev.clientY-sy));
+    Object.assign(el.style,{left:x+'px',top:y+'px',right:'auto',bottom:'auto',width:W+'px',height:H+'px'});};
+  const up=()=>{el.classList.remove('moving');tb.removeEventListener('pointermove',mv);tb.removeEventListener('pointerup',up);tb.removeEventListener('pointercancel',up);};
+  tb.addEventListener('pointermove',mv);tb.addEventListener('pointerup',up);tb.addEventListener('pointercancel',up);});
+/* Pinch on a trackpad, or Ctrl/⌘ + scroll, over a window zooms what's inside it. */
+$('screen').addEventListener('wheel',e=>{if(!(e.ctrlKey||e.metaKey))return;const w=winOf(e.target);if(!w)return;e.preventDefault();
+  ui.zoom[w]=Math.round(Math.min(2.5,Math.max(0.6,(ui.zoom[w]||1)*(e.deltaY<0?1.1:1/1.1)))*100)/100;if(Math.abs(ui.zoom[w]-1)<0.05)ui.zoom[w]=1;render(true);},{passive:false});
+/* Taskbar: click a minimized window to bring it back, the front one to minimize it, any other to bring it forward. */
+$('wbtns').addEventListener('click',e=>{const b=e.target.closest('[data-w]');if(!b)return;const w=b.dataset.w;
+  const order=WINS.filter(x=>S.open[x]&&!ui.min[x]).sort((a,c)=>(ui.z[a]||0)-(ui.z[c]||0));
+  if(ui.min[w]){ui.min[w]=false;raise(w);}else if(order[order.length-1]===w)ui.min[w]=true;else raise(w);
+  render(true);});
 
 const ago=ms=>{const s=(Date.now()-ms)/1000;return s<60?'just now':s<3600?Math.round(s/60)+' min ago':s<86400?Math.round(s/3600)+' h ago':Math.round(s/86400)+' d ago';};
 function updateConn(){
