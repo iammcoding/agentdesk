@@ -1,12 +1,15 @@
 {
   "name": "agentdesk",
-  "owner": { "name": "AgentDesk" },
+  "owner": {
+    "name": "AgentDesk"
+  },
   "description": "AgentDesk: watch your coding agent work on a little retro desktop.",
   "plugins": [
     {
       "name": "agentdesk",
       "source": "./plugin",
-      "description": "Live extras for AgentDesk: permission prompts, finished turns, and following the session you're in."
+      "description": "Watch Claude Code work on a retro desktop in your browser. Run `npx @iammcoding/agentdesk` alongside; these silent hooks make the desk live: tools appear the moment they start, permission prompts and finished turns show at once. Read-only, costs no tokens.",
+      "version": "0.1.1"
     }
   ]
 }
