@@ -1,6 +1,6 @@
 {
   "name": "@iammcoding/agentdesk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Watch your coding agent work on a little retro desktop. Reads the agent's own session logs on your computer, so it costs no tokens.",
   "type": "module",
   "bin": {

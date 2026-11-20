@@ -922,7 +922,7 @@ function render(snap){
   $('url').innerHTML=S.url?car(esc(S.url)):'about:blank';
   const P=S.page;
   $('page').innerHTML=!P?emptyMsg('The agent hasn’t opened a web page yet.'):P.loading?'<div class="loading"><i style="width:60%"></i><i style="width:90%"></i><i style="width:75%"></i><i style="width:84%"></i></div>'
-    :`<div class="page"><h3>${esc(clip(P.title,60))}</h3>${P.src?`<span class="src">${esc(clip(P.src,90))}</span>`:''}${P.image?`<img src="${P.image}" alt="">`:''}${P.links&&P.links.length?`<div class="links">${P.links.map(l=>`<a>${esc(l.title||l.url)}</a>`).join('')}</div>`:''}${P.text?`<div class="txt">${esc(P.text)}</div>`:''}</div>`;
+    :`<div class="page"><h3>${esc(clip(P.title,60))}</h3>${P.src?`<span class="src">${esc(clip(P.src,90))}</span>`:''}${P.image?`<img src="${esc(P.image)}" alt="">`:''}${P.links&&P.links.length?`<div class="links">${P.links.map(l=>`<a>${esc(l.title||l.url)}</a>`).join('')}</div>`:''}${P.text?`<div class="txt">${esc(P.text)}</div>`:''}</div>`;
   // helper
   const HR=S.helpRuns[S.helpCur];
   $('help-t').textContent=HR?'Helper · '+clip(HR.desc||HR.kind,40):'Helper';$('help-st').textContent=!HR?'HELPER':HR.active?String(HR.kind).toUpperCase():'DONE';
@@ -939,7 +939,7 @@ function render(snap){
   $('todo-st').textContent=T.length&&done===T.length?'ALL DONE':`${done}/${T.length}`;
   // images
   const I=S.img;$('img-t').textContent=I?'Images · '+I.name:'Images';
-  $('img').innerHTML=I?`<div class="viewer"><div class="meta"><span>${esc(I.name)}</span><span id="img-size"></span></div><div class="shotwrap real" id="shotwrap">${I.src?`<div class="shot real"><img id="pic" src="${I.src}" alt=""></div>`:'<div class="loading" style="width:60%"><i></i><i></i><i></i></div>'}${I.stage>=1&&I.src?'<span class="lens" id="lens"></span>':''}${I.stage>=3?`<span class="seen">${I.src?'Looked at '+esc(I.name):'Could not open '+esc(I.name)}</span>`:''}</div></div>`:emptyMsg('The agent hasn’t looked at an image yet.');
+  $('img').innerHTML=I?`<div class="viewer"><div class="meta"><span>${esc(I.name)}</span><span id="img-size"></span></div><div class="shotwrap real" id="shotwrap">${I.src?`<div class="shot real"><img id="pic" src="${esc(I.src)}" alt=""></div>`:'<div class="loading" style="width:60%"><i></i><i></i><i></i></div>'}${I.stage>=1&&I.src?'<span class="lens" id="lens"></span>':''}${I.stage>=3?`<span class="seen">${I.src?'Looked at '+esc(I.name):'Could not open '+esc(I.name)}</span>`:''}</div></div>`:emptyMsg('The agent hasn’t looked at an image yet.');
   const pic=$('pic');if(pic){const sz=()=>{if(pic.naturalWidth&&$('img-size'))$('img-size').textContent=pic.naturalWidth+'×'+pic.naturalHeight;placeLens();};pic.complete?sz():pic.onload=sz;}
   // git
   const G=S.git;$('git-t').textContent='Git · '+(S.project||'repo');$('git-st').textContent=G.panel?clip(G.panel.title.replace(/^git /,''),18).toUpperCase():G.commits.some(c=>c.fresh)?'COMMITTED':'GIT';
@@ -1008,7 +1008,8 @@ function render(snap){
   $('tok').textContent=S.cost?(S.cost.usd==null?`${k(S.cost.tokens)} TOK`:`${k(S.cost.tokens)} TOK · $${S.cost.usd.toFixed(2)}`):S.ctx?`${k(S.ctx.used)} TOK`:'';
   $('proj').textContent=[S.project,S.branch].filter(Boolean).join(' · ');
 }
-const safeImg=s=>typeof s==='string'&&/^data:image\/[a-z0-9.+-]+;base64,[A-Za-z0-9+\/=\s]+$/i.test(s)?s:null;
+/* Pictures only as data: images. An SVG shown through <img> cannot run scripts; the value is also escaped where it is used. */
+const safeImg=s=>typeof s==='string'&&(/^data:image\/[a-z0-9.+-]+;base64,[A-Za-z0-9+\/=\s]+$/i.test(s)||/^data:image\/svg\+xml;(utf8|charset=utf-8),[^"'<>\s]*$/i.test(s))?s:null;
 const emptyMsg=t=>`<div class="emptywin">${esc(t)}</div>`;
 function memNow(){
   if(!S.ctx)return emptyMsg('No memory reading yet.');

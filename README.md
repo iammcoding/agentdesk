@@ -2,6 +2,8 @@
 
 Watch your coding agent work on a little retro desktop.
 
+![AgentDesk following a coding agent: it reads a file, runs the tests, fixes a failure, checks the page in a browser, looks at a screenshot, commits and opens a pull request](https://raw.githubusercontent.com/iammcoding/agentdesk/main/docs/demo.gif)
+
 ```
 npx @iammcoding/agentdesk
 ```
@@ -46,6 +48,15 @@ It follows whichever session changed last. To watch a different one, open **Sett
 | Tests | runs the tests: a pass or fail banner, counts, and the failing tests |
 | Packages | installs packages |
 | Taskbar | open windows and background jobs (like `npm run dev`) |
+
+### Screenshots
+
+| | |
+|---|---|
+| ![Tests window: the test run failed, 1 passed and 1 failed, with the failing test listed](https://raw.githubusercontent.com/iammcoding/agentdesk/main/docs/tests.png) | ![Images window: the agent looks at a screenshot of the page it changed, with a magnifying glass over the toggle](https://raw.githubusercontent.com/iammcoding/agentdesk/main/docs/images.png) |
+| **Tests**: pass or fail, the counts, and what failed | **Images**: the real picture the agent is looking at |
+| ![Permission dialog: the agent wants to run npm test and waits for your answer](https://raw.githubusercontent.com/iammcoding/agentdesk/main/docs/permission.png) | ![Network window: a GitHub call that opened pull request #42, with the search results and git commit behind it](https://raw.githubusercontent.com/iammcoding/agentdesk/main/docs/network.png) |
+| **Permission**: when the agent is waiting for your OK | **Network**: outside tools like GitHub, with retries |
 
 ### Shell commands in the right window
 
