@@ -16,12 +16,18 @@ TOKS = [t for t in os.environ.get('CLOUDFLARE_API_TOKEN', '').split(',') if t]
 if not ACC or not TOKS: sys.exit('Set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN in this terminal first.')
 
 def cf(model, data, ct='application/json'):
+    import time
     last = None
-    for t in TOKS:
-        r = urllib.request.Request(f'https://api.cloudflare.com/client/v4/accounts/{ACC}/ai/run/{model}', data=data,
-                                   headers={'Authorization': 'Bearer ' + t, 'Content-Type': ct})
-        try: return urllib.request.urlopen(r, timeout=180).read()
-        except urllib.error.HTTPError as e: last = f'{e.code} {e.read()[:200]}'
+    for attempt in range(5):  # Cloudflare sometimes answers 500 or 429 for a moment
+        for t in TOKS:
+            r = urllib.request.Request(f'https://api.cloudflare.com/client/v4/accounts/{ACC}/ai/run/{model}', data=data,
+                                       headers={'Authorization': 'Bearer ' + t, 'Content-Type': ct})
+            try: return urllib.request.urlopen(r, timeout=180).read()
+            except urllib.error.HTTPError as e:
+                last = f'{e.code} {e.read()[:200]}'
+                if e.code in (401, 403): sys.exit(f'Cloudflare refused the key: {last}')
+            except (urllib.error.URLError, TimeoutError) as e: last = str(e)
+        time.sleep(2 + attempt * 3)
     sys.exit(f'Cloudflare {model} failed: {last}')
 
 S = json.load(open(os.path.join(HERE, 'script.json')))

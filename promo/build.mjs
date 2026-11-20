@@ -71,7 +71,7 @@ lines.forEach((L, i) => {
   if (i && L.shot !== prev.shot) hits.push([woosh, L.start - 0.1, 0.28]);
   if (L.shot === 'terminal-glitch') hits.push([glitch, L.start, 0.7]);
   if (L.shot === 'logo') hits.push([boom, L.start + 0.05, 0.9]);
-  if (L.shot === 'zoom-tests') { const w = L.words.find(w => /^fail\.?$/i.test(w.w)); if (w) hits.push([boom, w.t0, 0.6], [glitch, w.t0, 0.35]); }
+  if (L.shot === 'zoom-tests') { const w = L.words.find(w => /^fail/i.test(w.w)); if (w) hits.push([boom, w.t0, 0.6], [glitch, w.t0, 0.35]); }
   if (L.shot === 'tokens') { const w = L.words.find(w => w.w === '0'); if (w) hits.push([boom, w.t0, 0.75]); }
   if (L.shot === 'agents') L.words.filter(w => /^(Claude|Codex|Gemini)/i.test(w.w)).forEach(w => hits.push([pop, w.t0, 0.5]));
   if (L.shot === 'command') {
