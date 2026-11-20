@@ -3,7 +3,14 @@
 Watch your coding agent work on a little retro desktop.
 
 ```
-npx agentdesk
+npx @iammcoding/agentdesk
+```
+
+Or install it once and run `agentdesk` any time:
+
+```
+npm install -g @iammcoding/agentdesk
+agentdesk
 ```
 
 A desktop opens in your browser and follows the agent you're using right now. When the agent reads a file, the Editor opens it. When it runs a command, it's typed into the Shell. When it searches the web, the Web window loads. When it starts a helper, a second pointer walks over. The menu bar shows how full its memory is and what the session has cost so far.
@@ -83,13 +90,15 @@ Its hooks run in the background, print nothing (so Claude never sees them and th
 
 ## Options
 
+With `npx`, put `npx @iammcoding/agentdesk` in place of `agentdesk`.
+
 ```
-npx agentdesk --demo          play a sample session
-npx agentdesk --list          list recent sessions
-npx agentdesk --agent codex   follow only one agent
-npx agentdesk --file <path>   follow one session log
-npx agentdesk --port 5000     use another port (default 4747)
-npx agentdesk --no-open       don't open the browser
+agentdesk --demo          play a sample session
+agentdesk --list          list recent sessions
+agentdesk --agent codex   follow only one agent
+agentdesk --file <path>   follow one session log
+agentdesk --port 5000     use another port (default 4747)
+agentdesk --no-open       don't open the browser
 ```
 
 ## Privacy

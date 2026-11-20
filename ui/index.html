@@ -1121,7 +1121,7 @@ function connect(){
   const es=new EventSource('/events');conn.es=es;
   es.onopen=()=>{conn.ok=true;conn.was=true;updateConn();render(true);};
   es.onmessage=m=>{if(demo.on)return;let ev;try{ev=JSON.parse(m.data)}catch{return}enqueue(ev);};
-  es.onerror=()=>{conn.ok=false;updateConn();render(true);if(!demo.on&&!S.live){$('empty-msg').textContent='Can’t reach the agentdesk server. Run npx agentdesk in a terminal, then reload.';showEmpty(true);}};
+  es.onerror=()=>{conn.ok=false;updateConn();render(true);if(!demo.on&&!S.live){$('empty-msg').textContent='Can’t reach the agentdesk server. Run npx @iammcoding/agentdesk in a terminal, then reload.';showEmpty(true);}};
 }
 function showEmpty(v){$('empty').hidden=!v;}
 

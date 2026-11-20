@@ -15,8 +15,8 @@ const HELP = `
   agentdesk: watch your coding agent work.
 
   Usage
-    npx agentdesk               follow the agent you're using right now
-    npx agentdesk --demo        play a sample session
+    npx @iammcoding/agentdesk          follow the agent you're using right now
+    npx @iammcoding/agentdesk --demo   play a sample session
 
   Options
     --port <n>      port to use (default 4747, or the next free one)

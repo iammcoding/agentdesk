@@ -1,5 +1,5 @@
 {
-  "name": "agentdesk",
+  "name": "@iammcoding/agentdesk",
   "version": "0.1.0",
   "description": "Watch your coding agent work on a little retro desktop. Reads the agent's own session logs on your computer, so it costs no tokens.",
   "type": "module",
@@ -36,5 +36,8 @@
   "homepage": "https://github.com/iammcoding/agentdesk#readme",
   "bugs": {
     "url": "https://github.com/iammcoding/agentdesk/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
