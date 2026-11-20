@@ -124,6 +124,7 @@ function resultFor(tool, block, tur) {
     const hits = T.results.flatMap(x => (x && Array.isArray(x.content) ? x.content : [])).slice(0, 6);
     if (hits.length) r.links = hits.map(h => ({ title: cut(h.title, 120), url: h.url }));
   }
+  if (name === 'Bash') r.lines = outLines(text).map(l => cut(l, 300));
   r.text = cut(text, 1500);
   return r;
 }

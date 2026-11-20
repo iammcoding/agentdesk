@@ -95,6 +95,12 @@ export class Hub {
     this.attach(file);
   }
 
+  /* True for a file an adapter would list itself: inside its log folder and named like a session. */
+  isSession(file) {
+    const r = path.resolve(file);
+    return this.adapters.some(a => a.match(r) && a.roots().some(root => r.startsWith(path.resolve(root) + path.sep)));
+  }
+
   /* ---------- following one session ---------- */
   adapterFor(file) {
     const r = path.resolve(file);
@@ -174,7 +180,8 @@ export class Hub {
     let list;
     try { list = cur.adapter.helperFiles(cur.file); } catch { return; }
     for (const h of list) {
-      if (cur.helpers.has(h.file)) continue;
+      const known = cur.helpers.get(h.file);
+      if (known) { if (known.live && Date.now() - h.mtime > 10 * 60e3) { known.tail.stop(); known.live = false; } continue; }
       if (h.mtime < cur.since - 5 * 60e3) { cur.helpers.set(h.file, { tail: { stop() {} } }); continue; } // finished long ago
       if (cur.helpers.size > 200) return;
       const parse = cur.adapter.createParser(h.file, { sidechain: true });
@@ -189,7 +196,7 @@ export class Hub {
           }
         },
       }).start();
-      cur.helpers.set(h.file, { tail });
+      cur.helpers.set(h.file, { tail, live: true, id: h.file });
     }
   }
 
@@ -199,13 +206,18 @@ export class Hub {
     const tp = h.transcript_path;
     if (tp && this.mode === 'auto' && (!this.cur || path.resolve(tp) !== path.resolve(this.cur.file)) &&
         /^(SessionStart|UserPromptSubmit)$/.test(h.hook_event_name || '') && !h.agent_id) {
-      try { fs.accessSync(tp); this.attach(tp); } catch {}
+      try { fs.accessSync(tp); if (this.isSession(tp)) this.attach(tp); } catch {}
     }
     const cur = this.cur;
     if (!cur || (tp && path.resolve(tp) !== path.resolve(cur.file))) return;
     // Every hook means something just happened: read the log now instead of waiting for the next tick.
     if (cur.watch && cur.watch.poll) cur.watch.poll();
-    if (h.agent_id) { for (const x of cur.helpers.values()) x.tail.poll && x.tail.poll(); this.watchHelpers(cur); return; } // a helper's own hook: its log covers it
+    if (h.agent_id && !/^Subagent(Start|Stop)$/.test(h.hook_event_name || '')) {
+      this.watchHelpers(cur);
+      const aid = String(h.agent_id).replace(/^agent-/, '');
+      const own = [...cur.helpers.keys()].some(f => path.basename(f) === `agent-${aid}.jsonl`);
+      if (own) { for (const x of cur.helpers.values()) x.tail.poll && x.tail.poll(); return; } // a helper's own hook: its log covers it
+    }
     switch (h.hook_event_name) {
       case 'PreToolUse':
         // The tool is starting right now. Show it without waiting for the log line (same id, shown once).

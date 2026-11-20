@@ -77,8 +77,20 @@ test('StopFailure shows the error', () => {
 test('hooks from another session or from inside a helper do not disturb the desk', () => {
   const n = got.length;
   hub.hook({ transcript_path: path.join(proj, 'other.jsonl'), hook_event_name: 'PermissionRequest', tool_name: 'Bash', tool_input: {} });
+  // a hook fired inside a helper (that helper has its own log) is covered by the helper's log
+  const dir = path.join(proj, 'sess-1', 'subagents');
+  fs.mkdirSync(dir, { recursive: true });
+  line(path.join(dir, 'agent-abc.jsonl'), { type: 'user', isSidechain: true, message: { role: 'user', content: 'go' } });
   hook({ hook_event_name: 'PreToolUse', agent_id: 'abc', tool_use_id: 'H9', tool_name: 'Read', tool_input: { file_path: '/x' } });
   assert.equal(got.slice(n).filter(e => e.t === 'permission' || e.t === 'tool').length, 0);
+  // but a whole session started with --agent also carries agent_id: its hooks must still count
+  hook({ hook_event_name: 'PreToolUse', agent_id: 'reviewer', agent_type: 'reviewer', tool_use_id: 'M1', tool_name: 'Read', tool_input: { file_path: '/w/shop/a.ts' } });
+  assert.equal(got.slice(n).filter(e => e.t === 'tool' && e.id === 'M1').length, 1);
+  // a hook cannot point the desk at a file outside the agents' log folders
+  const before = hub.cur.file;
+  hub.hook({ hook_event_name: 'SessionStart', transcript_path: '/etc/hosts' });
+  hub.hook({ hook_event_name: 'UserPromptSubmit', transcript_path: path.join(tmp, 'elsewhere.jsonl') });
+  assert.equal(hub.cur.file, before);
   for (const junk of [null, 5, 'x', {}, { hook_event_name: 'Nope' }, { hook_event_name: 'PreToolUse' }]) assert.doesNotThrow(() => hub.hook(junk));
 });
 

@@ -267,7 +267,27 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;paddin
 .nmin{position:absolute;right:-8px;top:-10px;z-index:1;width:22px;height:20px;border:3px solid var(--ink);background:#fff;box-shadow:2px 2px 0 var(--ink);font-family:var(--pix);font-size:11px;line-height:1;display:grid;place-items:center}
 .nmin:hover{background:var(--gold)}
 .note.long{cursor:pointer}
-.note.open{max-height:min(55vh,420px);overflow:auto;white-space:pre-wrap}
+.notes:has(.note.open){width:min(560px,calc(100vw - 32px))}
+.note .mdw{max-height:7em;overflow:hidden}
+.note.open{max-height:min(62vh,520px);overflow:auto}
+.note.open .mdw{max-height:none;overflow:visible}
+.note.long:not(.open) .mdw{-webkit-mask-image:linear-gradient(#000 60%,transparent);mask-image:linear-gradient(#000 60%,transparent)}
+/* the agent writes Markdown: draw it as text people can read */
+.mdw>*{margin:0 0 6px}.mdw>*:last-child{margin-bottom:0}
+.mdw ul,.mdw ol{padding-left:18px}
+.mdw li{margin:2px 0}
+.mdw li>ul,.mdw li>ol{margin-top:2px}
+.mdw h6{font-family:var(--pix);font-size:10px;font-weight:700;margin-top:8px}
+.mdw code{background:rgba(0,0,0,.1);padding:0 3px;font-family:var(--mono);font-size:.95em;word-break:break-word}
+.mdw pre{background:#121212;color:#E8E8E8;padding:6px 8px;overflow:auto;font-size:11px;white-space:pre}
+.mdw pre code{background:none;padding:0}
+.mdw table{border-collapse:collapse;font-size:11px;display:block;overflow-x:auto;max-width:100%}
+.mdw th,.mdw td{border:2px solid var(--ink);padding:3px 6px;text-align:left;vertical-align:top;background:rgba(255,255,255,.55)}
+.mdw th{font-family:var(--pix);font-size:9px;font-weight:400;background:rgba(0,0,0,.12);white-space:nowrap}
+.mdw blockquote{border-left:4px solid var(--ink);padding-left:8px;opacity:.85}
+.mdw hr{border:0;border-top:2px dashed var(--ink)}
+.mdw a{color:inherit;text-decoration:underline}
+.note .more[hidden]{display:none}
 .note .more{display:block;margin-top:4px;font-family:var(--pix);font-size:9px;text-decoration:underline}
 .note.you{background:#fff}.note.help{background:var(--app-help)}
 .note small{display:block;font-family:var(--pix);font-size:9px;margin-bottom:2px}
@@ -567,7 +587,9 @@ async function pump(){
   while(Q.length){
     const ev=Q.shift();const my=run;
     const inst=!!ev.replay||Q.length>6||document.hidden||(!!ev.at&&Date.now()-ev.at>MAX_LAG&&!paused);lagOf(ev);
+    quiet=inst;
     try{await handle(ev,ctx(my,inst));}catch(e){if(e!==CANCEL)console.error(e);}
+    quiet=false;
     if(inst&&Q.length&&(Q[0].replay||Q.length>6))continue;
     render(inst);
   }
@@ -576,7 +598,48 @@ async function pump(){
 
 /* ============ what each event does ============ */
 const tab=p=>{if(!S.tabs.includes(p))S.tabs.push(p);if(S.tabs.length>5)S.tabs.shift();S.cur=p;ui.edTab=null;};
-const note=(who,text)=>{S.noteN=(S.noteN||0)+1;S.notes.push({id:S.noteN,who,text:clip(plain(text),3000)});if(S.notes.length>6)S.notes.shift();};
+/* A small, safe Markdown reader for notes: everything is escaped first, then only these marks are drawn. */
+function mdInline(t){
+  const codes=[];
+  let h=esc(t).replace(/`([^`]+)`/g,(m,c)=>{codes.push(c);return '\u0001'+(codes.length-1)+'\u0001';});
+  h=h.replace(/\*\*([^*]+)\*\*|__([^_]+)__/g,(m,a,b)=>'<b>'+(a||b)+'</b>').replace(/(^|[\s(])\*([^*\s][^*]*)\*(?=[\s).,;:!?]|$)/g,'$1<i>$2</i>')
+     .replace(/\[([^\]]+)\]\((?:[^()\s]|\([^()\s]*\))+\)/g,'<u>$1</u>');
+  return h.replace(/\u0001(\d+)\u0001/g,(m,i)=>'<code>'+codes[+i]+'</code>');
+}
+function md(src){
+  const L=String(src||'').replace(/\r/g,'').split('\n'),out=[];let i=0,para=[];
+  const flush=()=>{if(para.length){out.push('<p>'+para.map(mdInline).join('<br>')+'</p>');para=[];}};
+  const cells=l=>l.trim().replace(/^\||\|$/g,'').split(/(?<!\\)\|/).map(c=>c.trim());
+  const isRow=l=>/^\s*\|.*\|\s*$/.test(l),isSep=l=>/^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l);
+  const item=l=>/^(\s*)([-*+]|\d+[.)])\s+(.*)$/.exec(l);
+  while(i<L.length){const l=L[i];
+    if(/^\s*```/.test(l)){flush();const b=[];i++;while(i<L.length&&!/^\s*```/.test(L[i]))b.push(L[i++]);i++;out.push('<pre><code>'+esc(b.join('\n'))+'</code></pre>');continue;}
+    if(isRow(l)&&i+1<L.length&&isSep(L[i+1])){flush();const head=cells(l);i+=2;const rows=[];while(i<L.length&&isRow(L[i]))rows.push(cells(L[i++]));
+      out.push('<table><thead><tr>'+head.map(c=>'<th>'+mdInline(c)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+head.map((_,k)=>'<td>'+mdInline(r[k]||'')+'</td>').join('')+'</tr>').join('')+'</tbody></table>');continue;}
+    const h=/^\s*(#{1,6})\s+(.*)$/.exec(l);if(h){flush();out.push('<h6>'+mdInline(h[2])+'</h6>');i++;continue;}
+    if(/^\s*([-*_])\s*(\1\s*){2,}$/.test(l)){flush();out.push('<hr>');i++;continue;}
+    if(/^\s*>\s?/.test(l)){flush();const b=[];while(i<L.length&&/^\s*>\s?/.test(L[i]))b.push(L[i++].replace(/^\s*>\s?/,''));out.push('<blockquote>'+b.map(mdInline).join('<br>')+'</blockquote>');continue;}
+    if(item(l)){flush();
+      // nested lists by indent; a line that isn't an item continues the item above it
+      const build=ind=>{const first=item(L[i]),ord=/\d/.test(first[2]);let html=ord?'<ol start="'+parseInt(first[2],10)+'">':'<ul>';
+        while(i<L.length){
+          // a blank line doesn't end the list if the list carries on after it
+          if(!L[i].trim()){let j=i;while(j<L.length&&!L[j].trim())j++;const nx=j<L.length&&item(L[j]);if(nx&&nx[1].length>=ind){i=j;continue;}break;}
+          const m=item(L[i]);if(!m||m[1].length<ind)break;if(m[1].length>ind){html=html.replace(/<\/li>$/,'')+build(m[1].length)+'</li>';continue;}
+          let body=mdInline(m[3]);i++;
+          for(;;){
+            if(i<L.length&&L[i].trim()&&!item(L[i])&&/^\s+/.test(L[i])&&!isRow(L[i])){body+='<br>'+mdInline(L[i++].trim());continue;}
+            // a paragraph indented under the item, after a blank line, still belongs to it
+            if(i+1<L.length&&!L[i].trim()&&L[i+1].trim()&&/^\s{2,}/.test(L[i+1])&&!item(L[i+1])&&!isRow(L[i+1])&&!/^\s*```/.test(L[i+1])){i++;body+='<br><br>'+mdInline(L[i++].trim());continue;}
+            break;}
+          html+='<li>'+body+'</li>';}
+        return html+'</'+(ord?'ol':'ul')+'>';};
+      out.push(build(item(l)[1].length));continue;}
+    if(!l.trim()){flush();i++;continue;}
+    para.push(l.trim());i++;}
+  flush();return out.join('');
+}
+const note=(who,text)=>{S.noteN=(S.noteN||0)+1;S.notes.push({id:S.noteN,who,text:clip(String(text||'').trim(),6000)});if(S.notes.length>6)S.notes.shift();};
 
 async function handle(ev,x){
   switch(ev.t){
@@ -663,7 +726,10 @@ const RESULT={
   async ed(t,r,x){
     const p=rel(t.path);
     if(t.op==='read'&&r.lines){
-      const start=r.start||1;S.cache[p]=S.cache[p]||[];r.lines.forEach((s,i)=>S.cache[p][start-1+i]=s);
+      const start=r.start||1;const prev=S.cache[p]||[];delete S.cache[p];S.cache[p]=prev; // re-insert: most recently read last
+      const ck=Object.keys(S.cache);if(ck.length>40)for(const k of ck.slice(0,ck.length-40))if(!S.tabs.includes(k))delete S.cache[k];
+      if(start+r.lines.length>6000)S.cache[p]=[]; /* a huge file: keep only what was just read */
+      r.lines.forEach((s,i)=>S.cache[p][start-1+i]=s);
       if(S.cur===p){S.view.lines=S.cache[p].map((s,i)=>({n:i+1,t:s??''}));S.view.scroll=start;
         const end=start+r.lines.length-1;const steps=Math.min(10,r.lines.length);
         for(let k=1;k<=steps;k++){const upto=start+Math.round((end-start)*k/steps);S.view.lines.forEach(l=>l.k=l.n>=start&&l.n<=upto?'hl':'');render();await x.W(70);}
@@ -674,6 +740,8 @@ const RESULT={
       const L=hunkLines(r.hunks);
       S.view.lines=L;S.view.scroll=null;render();await x.W(900);return;
     }
+    if(t.op==='read'&&r.ok&&S.cur===p){const L=String(r.text||'').split('\n').filter(x=>x.trim()).slice(0,60);
+      S.view.lines=L.length?L.map(s=>({t:clip(s,300)})):[{t:/\.pdf$/i.test(p)?'PDF document: read as pages, no text to show here.':'Read. Nothing to show as text.'}];render();await x.W(600);return;}
     if(!r.ok&&r.text){S.view.lines=[...S.view.lines,{t:clip(plain(r.text),200),k:'del'}];}
     await x.W(500);
   },
@@ -690,12 +758,12 @@ const RESULT={
     S.files.rows=rows.slice(0,18);S.files.count=r.count??rows.length;S.files.more=Math.max(0,(r.count??rows.length)-18);render();await x.W(900);
   },
   async web(t,r,x){
-    S.page={title:t.query?'Results for “'+t.query+'”':host(t.url)||clip(String(t.action||'Page').replace(/_/g,' '),40),src:t.url||'',text:clip(r.text||'',900),links:r.links,image:r.image};
+    S.page={title:t.query?'Results for “'+t.query+'”':host(t.url)||clip(String(t.action||'Page').replace(/_/g,' '),40),src:t.url||'',text:clip(r.text||'',900),links:r.links,image:safeImg(r.image)};
     if(t.action&&/click/i.test(t.action))S.webSt='CLICKED';
     render();await x.W(1300);
   },
   async img(t,r,x){
-    if(!S.img)S.img={name:base(t.path)};S.img.src=r.image||null;S.img.stage=1;render();await x.W(800);S.img.stage=2;render();await x.W(800);S.img.stage=3;render();await x.W(1000);
+    if(!S.img)S.img={name:base(t.path)};S.img.src=safeImg(r.image);S.img.stage=1;render();await x.W(800);S.img.stage=2;render();await x.W(800);S.img.stage=3;render();await x.W(1000);
   },
   async help(t,r,x){
     const run=helpRun(t.id);run.active=false;run.done=true;S.helpers=activeHelpers();
@@ -783,7 +851,7 @@ async function ghFrom(t,r,L,x){
   x.show('net');S.net={server:'github',tool:[words[1],words[2]].filter(Boolean).join(' ')||'gh',state:'send'};await x.goTo('net');await x.W(800);
   S.net.state=r.ok?'ok':'fail';S.net.msg=clip(L.filter(Boolean).pop()||'',160);render();await x.W(1000);
 }
-const helpRun=id=>(S.helpRuns[id]=S.helpRuns[id]||{kind:'helper',desc:'',prompt:'',steps:[],active:false});
+const helpRun=id=>{if(!S.helpRuns[id]){const ks=Object.keys(S.helpRuns);if(ks.length>=30){const old=ks.find(k=>!S.helpRuns[k].active&&k!==S.helpCur);if(old)delete S.helpRuns[old];}S.helpRuns[id]={kind:'helper',desc:'',prompt:'',steps:[],active:false};}return S.helpRuns[id];};
 const activeHelpers=()=>Object.values(S.helpRuns).filter(r=>r.active).length;
 /* A line from a helper's own log: what it is doing right now. */
 async function helperStep(ev,x){
@@ -814,7 +882,9 @@ function memCells(f){const cut=f/8*12,keep=Math.round(60*0.3);
   return [...Array(60)].map((_,i)=>{const col=i%12,row=(i/12)|0,ord=col*5+row;if(col<cut)return ord<keep?'k':'';return OLD[i]+(Math.floor(cut)===col&&f<8?' sweep':'');});}
 
 const WINS=['ed','web','term','help','files','img','git','net','test','pkg','mem','todo'];
+let quiet=false;
 function render(snap){
+  if(quiet)return;
   /* Stacking: whatever was raised last (by you or the agent) is on top. */
   const order=WINS.filter(w=>S.open[w]&&!ui.min[w]).sort((a,b)=>(ui.z[a]||0)-(ui.z[b]||0));
   const top=order[order.length-1];
@@ -920,8 +990,11 @@ function render(snap){
   $('notes').hidden=!!ui.notesMin||!NS.length;
   const openEl=$('notes').querySelector('.note.open'),keep=openEl?[+openEl.dataset.note,openEl.scrollTop]:null;
   $('notes').innerHTML=NS.length?`<button class="nmin" data-notes-min aria-label="Minimize notes">–</button>`+NS.map(n=>{
-    const long=n.text.length>260,open=long&&ui.noteOpen===n.id;
-    return `<div class="note ${n.who} ${long?'long':''} ${open?'open':''}" data-note="${n.id}"${long?` role="button" tabindex="0" aria-expanded="${open}"`:''}><small>${n.who==='you'?'YOU ASKED':n.who==='help'?'HELPER REPORTS':esc(AG)}</small>${esc(open?n.text:clip(n.text,260))}${long?`<span class="more">${open?'SHOW LESS':'READ ALL'}</span>`:''}</div>`;}).join(''):'';
+    const open=ui.noteOpen===n.id;
+    return `<div class="note ${n.who} ${open?'long open':''}" data-note="${n.id}"><small>${n.who==='you'?'YOU ASKED':n.who==='help'?'HELPER REPORTS':esc(AG)}</small><div class="mdw">${md(n.text)}</div><span class="more" hidden>${open?'SHOW LESS':'READ ALL'}</span></div>`;}).join(''):'';
+  // a note that doesn't fit gets READ ALL; one that fits is just shown
+  $('notes').querySelectorAll('.note').forEach(el=>{const w=el.querySelector('.mdw'),over=el.classList.contains('open')||w.scrollHeight>w.clientHeight+2;
+    el.classList.toggle('long',over);el.querySelector('.more').hidden=!over;if(over){el.setAttribute('role','button');el.tabIndex=0;el.setAttribute('aria-expanded',el.classList.contains('open'));}});
   if(keep){const el=$('notes').querySelector(`.note.open[data-note="${keep[0]}"]`);if(el)el.scrollTop=keep[1];}
   // taskbar and meters
   const LV=demo.on?['sample','SAMPLE']:!conn.ok?['off',conn.was?'RECONNECTING…':'OFFLINE']:!conn.file?['wait','WAITING']:paused?['wait','PAUSED']:(Q.length>1||lag>1500)?['behind','CATCHING UP']:['on','LIVE'];
@@ -935,6 +1008,7 @@ function render(snap){
   $('tok').textContent=S.cost?(S.cost.usd==null?`${k(S.cost.tokens)} TOK`:`${k(S.cost.tokens)} TOK · $${S.cost.usd.toFixed(2)}`):S.ctx?`${k(S.ctx.used)} TOK`:'';
   $('proj').textContent=[S.project,S.branch].filter(Boolean).join(' · ');
 }
+const safeImg=s=>typeof s==='string'&&/^data:image\/[a-z0-9.+-]+;base64,[A-Za-z0-9+\/=\s]+$/i.test(s)?s:null;
 const emptyMsg=t=>`<div class="emptywin">${esc(t)}</div>`;
 function memNow(){
   if(!S.ctx)return emptyMsg('No memory reading yet.');

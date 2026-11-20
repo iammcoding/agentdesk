@@ -58,7 +58,8 @@ export const isBrowserTool = name => /browser|playwright|puppeteer|chrome|naviga
 
 /* Output for a window to draw: all of it when short, otherwise the start and the end. */
 export function outLines(s, max = 240) {
-  const L = String(s || '').replace(/\r/g, '').split('\n');
+  // "\r" redraws a line in place (progress bars, flutter test): what stays on screen is the text after the last one
+  const L = String(s || '').split(/\r?\n/).map(l => l.includes('\r') ? l.split('\r').filter(Boolean).pop() || '' : l);
   while (L.length && L[L.length - 1] === '') L.pop();
   if (L.length <= max) return L;
   return [...L.slice(0, max / 2), '…', ...L.slice(-max / 2)];
